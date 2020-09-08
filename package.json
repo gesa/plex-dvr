@@ -1,0 +1,52 @@
+{
+  "name": "plex-dvr-postprocessing",
+  "description": "A postprocessing script for the Plex DVR. Removes commercials, adds chapter markers, extracts captions as subtitles, and converts to mkv. Requires comskip, comcut, ccextractor, ffmpeg, and HandbrakeCLI.",
+  "version": "0.0.0",
+  "author": "aki @gesa",
+  "bin": {
+    "plexdvr": "./bin/run"
+  },
+  "bugs": "https://github.com/gesa/plex-dvr-postprocessing/issues",
+  "dependencies": {
+    "@oclif/command": "^1.8.0",
+    "@oclif/config": "^1.17.0",
+    "@oclif/plugin-help": "^3.2.0",
+    "tslib": "^1.13.0",
+    "winston": "^3.3.3"
+  },
+  "devDependencies": {
+    "@oclif/dev-cli": "^1.22.2",
+    "@types/node": "^10.17.29",
+    "eslint": "^5.16.0",
+    "eslint-config-oclif": "^3.1.0",
+    "eslint-config-oclif-typescript": "^0.1.0",
+    "eslint-config-prettier": "^6.11.0",
+    "prettier": "^2.1.1",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.7"
+  },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "files": [
+    "/bin",
+    "/lib"
+  ],
+  "homepage": "https://github.com/gesa/plex-dvr-postprocessing",
+  "keywords": [
+    "oclif"
+  ],
+  "license": "MIT",
+  "main": "lib/index.js",
+  "oclif": {
+    "bin": "plexdvr"
+  },
+  "repository": "gesa/plex-dvr-postprocessing",
+  "scripts": {
+    "posttest": "eslint . --ext .ts --config .eslintrc",
+    "prepack": "rm -rf lib && tsc -b && oclif-dev readme",
+    "test": "echo NO TESTS",
+    "version": "oclif-dev readme && git add README.md"
+  },
+  "types": "lib/index.d.ts"
+}
