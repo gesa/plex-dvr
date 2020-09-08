@@ -1,7 +1,7 @@
 {
   "name": "plex-dvr-postprocessing",
   "description": "A postprocessing script for the Plex DVR. Removes commercials, adds chapter markers, extracts captions as subtitles, and converts to mkv. Requires comskip, comcut, ccextractor, ffmpeg, and HandbrakeCLI.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "aki @gesa",
   "bin": {
     "plexdvr": "./bin/run"
@@ -46,7 +46,7 @@
     "posttest": "eslint . --ext .ts --config .eslintrc",
     "prepack": "rm -rf lib && tsc -b && oclif-dev readme",
     "test": "echo NO TESTS",
-    "version": "oclif-dev manifest && oclif-dev readme && git add README.md"
+    "version": "oclif-dev manifest && oclif-dev readme && git add oclif.manifest.json README.md"
   },
   "types": "lib/index.d.ts"
 }
