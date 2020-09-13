@@ -6,13 +6,13 @@ import {
   statSync,
   unlinkSync,
 } from "fs";
-import { basename, dirname, join } from "path";
-import { tmpdir, type } from "os";
-import { Command, flags } from "@oclif/command";
-import { handle } from "@oclif/errors";
-import { IConfig } from "@oclif/config";
-import { transports } from "winston";
-import { spawnBinary } from "./util";
+import {inspect} from 'util';
+import {basename, dirname, join} from "path";
+import {tmpdir, type} from "os";
+import {Command, flags} from "@oclif/command";
+import {IConfig} from "@oclif/config";
+import {transports} from "winston";
+import {spawnBinary} from "./util";
 import logger from "./logger";
 import {
   COMCUT,
@@ -27,7 +27,7 @@ import {
   HANDBRAKE_OPTS,
 } from "./constants";
 
-const { copyFile, writeFile, unlink } = promises;
+const {copyFile, writeFile, unlink} = promises;
 const baseConfigOptions = {
   encoder: type() === "Linux" ? "qsv_h265" : "Darwin" ? "vt_h264" : null,
   "encoder-preset": "default",
@@ -37,10 +37,11 @@ const baseConfigOptions = {
   "quiet-time": "03-12",
 };
 
-class PlexDvr extends Command {
-  private readonly lockFile: string;
 
-  private readonly dataDir: string;
+class PlexDvr extends Command {
+  private readonly lockFile: string = join(tmpdir(), "dvrProcessing.lock");
+
+  private userConfig: Record<string, string | boolean> = {};
 
   static usage = "[options] [FILE]";
 
@@ -78,8 +79,8 @@ package manager.
 `;
 
   static examples = [
-    "$ vids plexpost /path/to/video",
-    "$ vids plexpost -q 22-06 -e vt_h264 /path/to/video",
+    "plexdvr /path/to/video",
+    "plexdvr -q 22-06 -e vt_h264 /path/to/video",
   ];
 
   static flags = {
@@ -92,27 +93,19 @@ package manager.
       description:
         "Video encoder preset to pass to Handbrake. Run `HandbrakeCLI --encoder-preset-list <string encoder>' to see available presets.",
     }),
-    help: flags.help({ char: "h" }),
+    help: flags.help({char: "h"}),
     "ignore-quiet-time": flags.boolean({
-      default: (config: any) =>
-        config.configValues?.["ignore-quiet-time"] ||
-        baseConfigOptions["ignore-quiet-time"],
       description:
         "Process file immediately without checking against quiet time hours.",
     }),
     "keep-original": flags.boolean({
       allowNo: true,
-      default: (config: any) =>
-        config.configValues?.["keep-original"] ||
-        baseConfigOptions["keep-original"],
       description:
-        "Prevent original `.ts' file produced by Plex's DVR from being deleted.",
+        "Prevent original `.ts' file produced by Plex's DVR from being deleted. Default is false, prepend with `--no-` to override local config.",
     }),
     "keep-temp": flags.boolean({
       allowNo: true,
-      default: (config: any) =>
-        config.configValues?.["keep-temp"] || baseConfigOptions["keep-temp"],
-      description: "Prevent temporary working directory from being deleted",
+      description: "Prevent temporary working directory from being deleted.  Default is false, prepend with `--no-` to override local config.",
     }),
     "quiet-time": flags.string({
       char: "q",
@@ -121,7 +114,7 @@ package manager.
     }),
     "sample-config": flags.boolean({
       description:
-        "If you prefer a config file to command line options, this will print a sample config JSON and exit.",
+        "Print default config values and exit.",
     }),
     verbose: flags.boolean({
       char: "v",
@@ -134,29 +127,31 @@ package manager.
     }),
   };
 
-  static args = [{ name: "file" }];
+  static args = [{name: "file"}];
 
   constructor(argv: string[], config: IConfig) {
     super(argv, config);
+  }
 
-    this.config = config;
-    this.dataDir = config.dataDir;
-    this.lockFile = join(tmpdir(), "dvrProcessing.lock");
+  async init() {
+    const configFile = join(this.config.configDir, 'config.json');
+
+    if (existsSync(configFile)) {
+      this.userConfig = JSON.parse(readFileSync(configFile).toString());
+    }
   }
 
   async run() {
     const {
-      args: { file },
+      args: {file},
       flags,
     } = this.parse(PlexDvr);
     const options = {
       ...baseConfigOptions,
-      ...JSON.parse(
-        readFileSync(join(this.config.configDir, "config.json")).toString()
-      ),
+      ...this.userConfig,
       ...flags,
     };
-    const { verbose, debug } = options;
+    const {verbose, debug} = options;
 
     if (options["sample-config"]) {
       logger.info(
@@ -164,11 +159,7 @@ package manager.
       );
       logger.info(JSON.stringify(baseConfigOptions, null, 2));
 
-      process.exit(0);
-    }
-
-    if (Boolean(flags.help)) {
-      return;
+      this.exit(0);
     }
 
     let quietTime = true;
@@ -184,7 +175,7 @@ package manager.
 
     logger.add(
       new transports.File({
-        filename: join(this.dataDir, "plexDvrProcessing.log"),
+        filename: join(this.config.dataDir, "plexDvrProcessing.log"),
         maxsize: 1000000,
         maxFiles: 10,
         tailable: true,
@@ -369,23 +360,33 @@ package manager.
 
         throw code;
       })
-      .catch((code: number) => {
+      .catch((code: string) => {
+        const ccExtractorError = (message: string) => {
+          return this.error(message, {
+            code: code,
+            exit: parseInt(code),
+            ref: 'https://github.com/CCExtractor/ccextractor/blob/v0.88/src/lib_ccx/ccx_common_common.h',
+            suggestions: [
+              'You can find CCEXTRACTOR error codes defined on github'
+            ]
+          });
+        };
+
         switch (code) {
-          case 0:
-          case 10:
+          case '0':
+          case '10':
             return Promise.resolve();
-          case 2:
-            throw new Error("CCEXTRACTOR exited with no input files");
-          case 3:
-            throw new Error("CCEXTRACTOR exited with too many input files");
-          case 4:
-          case 7:
-            throw new Error("CCEXTRACTOR exited due to bad parameters");
-          case 9:
-            throw new Error("CCEXTRACTOR exited with help text");
+          case '2':
+            ccExtractorError("CCEXTRACTOR exited with no input files")
+          case '3':
+            ccExtractorError("CCEXTRACTOR exited with too many input files")
+          case '4':
+          case '7':
+            ccExtractorError("CCEXTRACTOR exited due to bad parameters")
+          case '9':
+            ccExtractorError("CCEXTRACTOR exited with help text")
           default:
-            throw new Error(`CCEXTRACTOR exited with code ${code}
-Relevant codes are defined at https://github.com/CCExtractor/ccextractor/blob/v0.88/src/lib_ccx/ccx_common_common.h`);
+            ccExtractorError(`CCEXTRACTOR exited with code ${code}`)
         }
       })
       /**
@@ -460,22 +461,18 @@ Relevant codes are defined at https://github.com/CCExtractor/ccextractor/blob/v0
        * Delete lockfile, time to process the next one!v
        * */
       .then(() => unlink(lockFile))
-      .catch(() => this.bail);
+      .catch(() => this.catch);
   }
 
-  bail(err: Error) {
-    logger.error(err.message);
+  async catch(error: Error) {
+    logger.error(error.message);
 
     if (existsSync(this.lockFile)) {
       logger.error("Deleting lockfile due to error.");
       unlinkSync(this.lockFile);
     }
 
-    return handle(err);
-  }
-
-  async catch(error: Error) {
-    this.bail(error);
+    throw error;
   }
 }
 
