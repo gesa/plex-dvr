@@ -1,12 +1,12 @@
-import { createLogger, format, transports } from 'winston';
+import { createLogger, format, transports } from "winston";
 
 const { combine, timestamp, printf, errors, colorize, label } = format;
 
 export default createLogger({
   format: combine(
     colorize({ message: true }),
-    timestamp({ format: 'MM/DD HH:mm:ss' }),
-    label({ label: 'VIDS' }),
+    timestamp({ format: "MM/DD HH:mm:ss" }),
+    label({ label: "VIDS" }),
     printf(
       ({ level, message, label, timestamp }) =>
         `${timestamp} [${label}] ${level}: ${message}`
@@ -15,9 +15,9 @@ export default createLogger({
   ),
   transports: [
     new transports.Console({
-      level: 'verbose',
-      stderrLevels: ['error'],
-      consoleWarnLevels: ['warn']
-    })
-  ]
+      level: "verbose",
+      stderrLevels: ["error"],
+      consoleWarnLevels: ["warn"],
+    }),
+  ],
 });

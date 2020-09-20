@@ -6,13 +6,11 @@ import {
   statSync,
   unlinkSync,
 } from "fs";
-import {inspect} from 'util';
-import {basename, dirname, join} from "path";
-import {tmpdir, type} from "os";
-import {Command, flags} from "@oclif/command";
-import {IConfig} from "@oclif/config";
-import {transports} from "winston";
-import {spawnBinary} from "./util";
+import { basename, dirname, join } from "path";
+import { tmpdir, type } from "os";
+import { Command, flags } from "@oclif/command";
+import { transports } from "winston";
+import { spawnBinary } from "./util";
 import logger from "./logger";
 import {
   COMCUT,
@@ -27,9 +25,9 @@ import {
   HANDBRAKE_OPTS,
 } from "./constants";
 
-const {copyFile, writeFile, unlink} = promises;
-const baseConfigOptions = {
-  encoder: type() === "Linux" ? "qsv_h265" : "Darwin" ? "vt_h264" : null,
+const { copyFile, writeFile, unlink } = promises;
+const baseConfigOptions: Configuration = {
+  encoder: type() === "Darwin" ? "vt_h264" : "qsv_h265",
   "encoder-preset": "default",
   "ignore-quiet-time": false,
   "keep-original": false,
@@ -37,11 +35,29 @@ const baseConfigOptions = {
   "quiet-time": "03-12",
 };
 
+type UserConfiguration = {
+  encoder?: string;
+  "encoder-preset"?: string;
+  "ignore-quiet-time"?: boolean;
+  "keep-original"?: boolean;
+  "keep-temp"?: boolean;
+  "quiet-time"?: string;
+};
+
+type Configuration = {
+  encoder: string;
+  "encoder-preset": string;
+  "ignore-quiet-time": boolean;
+  "keep-original": boolean;
+  "keep-temp": boolean;
+  "quiet-time": string;
+  [index: string]: string | boolean;
+};
 
 class PlexDvr extends Command {
   private readonly lockFile: string = join(tmpdir(), "dvrProcessing.lock");
 
-  private userConfig: Record<string, string | boolean> = {};
+  private userConfig: UserConfiguration = {};
 
   static usage = "[options] [FILE]";
 
@@ -93,7 +109,7 @@ package manager.
       description:
         "Video encoder preset to pass to Handbrake. Run `HandbrakeCLI --encoder-preset-list <string encoder>' to see available presets.",
     }),
-    help: flags.help({char: "h"}),
+    help: flags.help({ char: "h" }),
     "ignore-quiet-time": flags.boolean({
       description:
         "Process file immediately without checking against quiet time hours.",
@@ -105,7 +121,8 @@ package manager.
     }),
     "keep-temp": flags.boolean({
       allowNo: true,
-      description: "Prevent temporary working directory from being deleted.  Default is false, prepend with `--no-` to override local config.",
+      description:
+        "Prevent temporary working directory from being deleted.  Default is false, prepend with `--no-` to override local config.",
     }),
     "quiet-time": flags.string({
       char: "q",
@@ -113,8 +130,7 @@ package manager.
       exclusive: ["ignore-quiet-time"],
     }),
     "sample-config": flags.boolean({
-      description:
-        "Print default config values and exit.",
+      description: "Print default config values and exit.",
     }),
     verbose: flags.boolean({
       char: "v",
@@ -127,31 +143,27 @@ package manager.
     }),
   };
 
-  static args = [{name: "file"}];
-
-  constructor(argv: string[], config: IConfig) {
-    super(argv, config);
-  }
+  static args = [{ name: "file" }];
 
   async init() {
-    const configFile = join(this.config.configDir, 'config.json');
+    const configPath = join(this.config.configDir, "config.json");
 
-    if (existsSync(configFile)) {
-      this.userConfig = JSON.parse(readFileSync(configFile).toString());
+    if (existsSync(configPath)) {
+      this.userConfig = JSON.parse(readFileSync(configPath).toString());
     }
   }
 
   async run() {
     const {
-      args: {file},
+      args: { file },
       flags,
     } = this.parse(PlexDvr);
-    const options = {
-      ...baseConfigOptions,
-      ...this.userConfig,
-      ...flags,
-    };
-    const {verbose, debug} = options;
+    const options: Configuration = Object.assign(
+      baseConfigOptions,
+      this.userConfig,
+      flags
+    );
+    const { verbose, debug } = options;
 
     if (options["sample-config"]) {
       logger.info(
@@ -364,29 +376,35 @@ package manager.
         const ccExtractorError = (message: string) => {
           return this.error(message, {
             code: code,
-            exit: parseInt(code),
-            ref: 'https://github.com/CCExtractor/ccextractor/blob/v0.88/src/lib_ccx/ccx_common_common.h',
+            exit: parseInt(code, 10),
+            ref:
+              "https://github.com/CCExtractor/ccextractor/blob/v0.88/src/lib_ccx/ccx_common_common.h",
             suggestions: [
-              'You can find CCEXTRACTOR error codes defined on github'
-            ]
+              "You can find CCEXTRACTOR error codes defined on github",
+            ],
           });
         };
 
         switch (code) {
-          case '0':
-          case '10':
+          case "0":
+          case "10":
             return Promise.resolve();
-          case '2':
-            ccExtractorError("CCEXTRACTOR exited with no input files")
-          case '3':
-            ccExtractorError("CCEXTRACTOR exited with too many input files")
-          case '4':
-          case '7':
-            ccExtractorError("CCEXTRACTOR exited due to bad parameters")
-          case '9':
-            ccExtractorError("CCEXTRACTOR exited with help text")
+          case "2":
+            ccExtractorError("CCEXTRACTOR exited with no input files");
+            break;
+          case "3":
+            ccExtractorError("CCEXTRACTOR exited with too many input files");
+            break;
+          case "4":
+          case "7":
+            ccExtractorError("CCEXTRACTOR exited due to bad parameters");
+            break;
+          case "9":
+            ccExtractorError("CCEXTRACTOR exited with help text");
+            break;
           default:
-            ccExtractorError(`CCEXTRACTOR exited with code ${code}`)
+            ccExtractorError(`CCEXTRACTOR exited with code ${code}`);
+            break;
         }
       })
       /**
@@ -415,7 +433,7 @@ package manager.
       .then(() => {
         const hbOptions = HANDBRAKE_OPTS.map((option) => {
           if (option === "_VIDEO_ENCODER_") return options.encoder;
-          if (options === "_VIDEO_PRESET_") return options["encoder-preset"];
+          if (option === "_VIDEO_PRESET_") return options["encoder-preset"];
           return option;
         });
 
