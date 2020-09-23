@@ -13,15 +13,10 @@ import { Logger } from "winston";
 import { spawnBinary } from "./util";
 import setUpLogger from "./logger";
 import {
-  COMCUT,
   COMCUT_OPTS,
-  COMSKIP,
   COMSKIP_OPTS,
-  CCEXTRACTOR,
   CCEXTRACTOR_ARGS,
-  FFMPEG,
   FFMPEG_OPTS,
-  HANDBRAKE,
   HANDBRAKE_OPTS,
 } from "./constants";
 
@@ -357,7 +352,7 @@ config directory
         this.info(`Running ComSkip on '${fileName}'`);
         this.verbose(`current command:\ncomskip ${COMSKIP_OPTS.join(" ")}`);
 
-        return spawnBinary(COMSKIP, COMSKIP_OPTS, this.logger);
+        return spawnBinary('comskip', COMSKIP_OPTS, this.logger);
       }, this.catch)
       /**
        * Run Comcut if there's an edl file denoting chapter boundaries.
@@ -375,7 +370,7 @@ config directory
           this.info(`Commercials detected! Running Comcut on ${fileName}`);
           this.verbose(`current command:\ncomcut ${COMCUT_OPTS.join(" ")}`);
 
-          return spawnBinary(COMCUT, COMCUT_OPTS, this.logger);
+          return spawnBinary('comcut', COMCUT_OPTS, this.logger);
         }
 
         this.info("No commercials found");
@@ -397,7 +392,7 @@ config directory
           `current command:\nccextractor ${CCEXTRACTOR_ARGS.join(" ")}`
         );
 
-        return spawnBinary(CCEXTRACTOR, CCEXTRACTOR_ARGS, this.logger);
+        return spawnBinary('ccextractor', CCEXTRACTOR_ARGS, this.logger);
       }, this.catch)
       .catch((code: void | number) => {
         const ccExtractorError = (message: string) =>
@@ -448,7 +443,7 @@ config directory
         this.info("Remuxing ts file to mp4 and adding chapter markers");
         this.verbose(`current command:\nffmpeg ${FFMPEG_OPTS.join(" ")}`);
 
-        return spawnBinary(FFMPEG, FFMPEG_OPTS, this.logger);
+        return spawnBinary('ffmpeg', FFMPEG_OPTS, this.logger);
       })
       /**
        * Transcode mp4 to mkv using handbrake
@@ -472,10 +467,10 @@ config directory
         this.info(`Transcoding started on '${fileName}'`);
         this.verbose(`current command:\nHandbrakeCLI ${hbOptions.join(" ")}`);
 
-        return spawnBinary(HANDBRAKE, hbOptions, this.logger);
+        return spawnBinary('HandBrakeCLI', hbOptions, this.logger);
       })
       .catch((code) =>
-        this.error("HandbrakeCLI failed", {
+        this.error("HandBrakeCLI failed", {
           code,
           suggestions: [
             "Handbrake doesn't officially support being compiled with ffmpeg?",
