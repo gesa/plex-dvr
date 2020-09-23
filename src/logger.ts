@@ -7,7 +7,7 @@ const { combine, timestamp, printf, errors, colorize, label } = format;
 const { mkdir } = promises;
 const defaultFormat = [
   timestamp({ format: "MM/DD HH:mm:ss" }),
-  label({ label: "VIDS" }),
+  label({ label: "PLEXDVR" }),
   printf(
     ({ level, message, label, timestamp }) =>
       `${timestamp} [${label}] ${level}: ${message}`
