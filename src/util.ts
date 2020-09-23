@@ -1,17 +1,11 @@
-import logger from "./logger";
 import { spawn } from "child_process";
+import { Logger } from "winston";
 
-function reportErrorAndBail(message: string) {
-  return (error: Error) => {
-    logger.error(message);
-
-    if (error) logger.error(`${error.message}`);
-
-    process.exit(1);
-  };
-}
-
-function spawnBinary(cmd: string, args: string[]): Promise<void | number> {
+export function spawnBinary(
+  cmd: string,
+  args: string[],
+  logger: Logger
+): Promise<void | number> {
   return new Promise((resolve, reject) => {
     const spawnedProcess = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
@@ -42,5 +36,3 @@ function spawnBinary(cmd: string, args: string[]): Promise<void | number> {
     });
   });
 }
-
-export { reportErrorAndBail, spawnBinary };

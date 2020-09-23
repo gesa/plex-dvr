@@ -9,9 +9,8 @@ import {
 import { basename, dirname, join } from "path";
 import { tmpdir, type } from "os";
 import { Command, flags } from "@oclif/command";
-import { transports } from "winston";
 import { spawnBinary } from "./util";
-import logger from "./logger";
+import setUpLogger from "./logger";
 import {
   COMCUT,
   COMCUT_OPTS,
@@ -24,6 +23,8 @@ import {
   HANDBRAKE,
   HANDBRAKE_OPTS,
 } from "./constants";
+import { Logger } from "winston";
+import { PrettyPrintableError } from "@oclif/errors";
 
 const { copyFile, writeFile, unlink } = promises;
 const baseConfigOptions: Configuration = {
@@ -145,12 +146,46 @@ package manager.
 
   static args = [{ name: "file" }];
 
+  private logger!: Logger;
+
   async init() {
     const configPath = join(this.config.configDir, "config.json");
+    const {
+      flags: { verbose, debug },
+    } = this.parse(PlexDvr);
 
     if (existsSync(configPath)) {
       this.userConfig = JSON.parse(readFileSync(configPath).toString());
     }
+
+    this.logger = setUpLogger(
+      this.config,
+      debug ? "silly" : verbose ? "verbose" : "info"
+    );
+  }
+
+  warn(input: string | Error) {
+    this.logger.log("warn", input);
+
+    super.warn(input);
+  }
+
+  silly(message: string) {
+    this.logger.log({ level: "silly", message });
+  }
+
+  info(message: string) {
+    this.logger.log({ level: "info", message });
+  }
+
+  verbose(message: string) {
+    this.logger.log({ level: "verbose", message });
+  }
+
+  log(message: string, ...rest: any[]) {
+    this.logger.log({ level: "log", message, ...rest });
+
+    super.log(message, ...rest);
   }
 
   async run() {
@@ -163,13 +198,12 @@ package manager.
       this.userConfig,
       flags
     );
-    const { verbose, debug } = options;
 
     if (options["sample-config"]) {
-      logger.info(
+      this.info(
         `${this.config.name} will look for a config file at ${this.config.configDir}.`
       );
-      logger.info(JSON.stringify(baseConfigOptions, null, 2));
+      this.info(JSON.stringify(baseConfigOptions, null, 2));
 
       this.exit(0);
     }
@@ -185,19 +219,7 @@ package manager.
     const quietStart = parseInt(qS, 10);
     const quietEnd = parseInt(qE, 10);
 
-    logger.add(
-      new transports.File({
-        filename: join(this.config.dataDir, "plexDvrProcessing.log"),
-        maxsize: 1000000,
-        maxFiles: 10,
-        tailable: true,
-        zippedArchive: true,
-        level: debug ? "silly" : verbose ? "verbose" : "info",
-      })
-    );
-    logger.transports[0].level = debug ? "silly" : verbose ? "verbose" : "warn";
-
-    logger.info(`DVR post-processing script started on "${fileName}"`);
+    this.info(`DVR post-processing script started on "${fileName}"`);
 
     /**
      * The server fans are loud, only process video files when permitted.
@@ -207,14 +229,14 @@ package manager.
      * @param {string} file pretty filename for logging purposes
      * @return {Promise<void>} resolves with filename
      */
-    function checkForQuietTime(file: string): Promise<string> {
+    const checkForQuietTime = (file: string): Promise<string> => {
       return new Promise((resolve) => {
         const currentHour = new Date().getHours();
 
-        logger.verbose("Checking quiet time");
+        this.verbose("Checking quiet time");
 
         if (options["ignore-quiet-time"] || quietStart === quietEnd) {
-          logger.info(
+          this.info(
             `There is no quiet time set, beginning processing of ${file} immediately.`
           );
 
@@ -224,7 +246,7 @@ package manager.
         }
 
         const quietTimeLockout = global.setInterval(() => {
-          logger.verbose("Beginning quiet time interval");
+          this.verbose("Beginning quiet time interval");
 
           if (quietStart > quietEnd) {
             quietTime = currentHour >= quietStart || currentHour < quietEnd;
@@ -232,12 +254,12 @@ package manager.
             quietTime = currentHour >= quietStart && currentHour < quietEnd;
           }
 
-          logger.verbose(`It ${quietTime ? "is" : "is not"} quiet time.`);
+          this.verbose(`It ${quietTime ? "is" : "is not"} quiet time.`);
 
           if (quietTime) {
-            logger.debug(`It's quiet time, sleeping '${file}' for 15 min.`);
+            this.silly(`It's quiet time, sleeping '${file}' for 15 min.`);
           } else {
-            logger.info(
+            this.info(
               `Quiet time is over, let's get on with converting '${file}'.`
             );
             quietTime = false;
@@ -247,14 +269,14 @@ package manager.
           }
         }, 900000);
       });
-    }
+    };
 
     /**
      * The server is petite, only process one video at a time
      * @param {string} file pretty filename for logging
      * @return {Promise<void>} Resolved promise after lockfile is gone
      * */
-    function checkForLockFile(file: string): Promise<void> {
+    const checkForLockFile = (file: string): Promise<void> => {
       return new Promise((resolve) => {
         const lockFilePresent = existsSync(lockFile);
 
@@ -262,40 +284,40 @@ package manager.
           lockFilePresent &&
           Date.now() - statSync(lockFile).birthtimeMs > 86400000
         ) {
-          logger.warn("DVR lockfile is stale. Deleting and moving on.");
+          this.warn("DVR lockfile is stale. Deleting and moving on.");
           unlinkSync(lockFile);
 
           return resolve();
         }
 
         if (lockFilePresent) {
-          logger.info("DVR lockfile currently exists, sleeping for 5 minutes.");
+          this.info("DVR lockfile currently exists, sleeping for 5 minutes.");
         } else {
-          logger.verbose("There is no lockfile, CPU is free, moving on.");
+          this.verbose("There is no lockfile, CPU is free, moving on.");
 
           return resolve();
         }
 
         const lockFileLockout = global.setInterval(() => {
           if (existsSync(lockFile)) {
-            logger.verbose(`Lockfile present, sleeping ${file} for 5 min.`);
+            this.verbose(`Lockfile present, sleeping ${file} for 5 min.`);
           } else {
-            logger.info("DVR lockfile is gone, CPU is free, moving on.");
+            this.info("DVR lockfile is gone, CPU is free, moving on.");
             global.clearInterval(lockFileLockout);
 
             return resolve();
           }
         }, 300000);
       });
-    }
+    };
 
-    await checkForQuietTime(fileName)
+    return checkForQuietTime(fileName)
       .then(checkForLockFile)
       /**
        * Create DVR lockfile
        * */
       .then(() => {
-        logger.info(`Creating lock file for processing ${fileName}`);
+        this.info(`Creating lock file for processing ${fileName}`);
 
         return writeFile(lockFile, `Lock file generated by ${fileName}`, {
           flag: "wx",
@@ -305,7 +327,7 @@ package manager.
        * Copy original file into temporary directory
        * */
       .then(() => {
-        logger.verbose(`Copying original ts to ${workingDir}`);
+        this.verbose(`Copying original ts to ${workingDir}`);
 
         return copyFile(file, `${workingFile}.ts`);
       })
@@ -324,10 +346,10 @@ package manager.
         );
         delete process.env.LD_LIBRARY_PATH;
 
-        logger.info(`Running ComSkip on '${fileName}'`);
-        logger.verbose(`current command:\ncomskip ${COMSKIP_OPTS.join(" ")}`);
+        this.info(`Running ComSkip on '${fileName}'`);
+        this.verbose(`current command:\ncomskip ${COMSKIP_OPTS.join(" ")}`);
 
-        return spawnBinary(COMSKIP, COMSKIP_OPTS);
+        return spawnBinary(COMSKIP, COMSKIP_OPTS, this.logger);
       })
       /**
        * Run Comcut if there's an edl file denoting chapter boundaries.
@@ -338,14 +360,14 @@ package manager.
         if (existsSync(`${workingFile}.edl`)) {
           COMCUT_OPTS.push(`--work-dir="${workingDir}"`, `"${workingFile}.ts"`);
 
-          logger.info(`Commercials detected! Running Comcut on ${fileName}`);
-          logger.verbose(`current command:\ncomcut ${COMCUT_OPTS.join(" ")}`);
+          this.info(`Commercials detected! Running Comcut on ${fileName}`);
+          this.verbose(`current command:\ncomcut ${COMCUT_OPTS.join(" ")}`);
 
-          return spawnBinary(COMCUT, COMCUT_OPTS);
+          return spawnBinary(COMCUT, COMCUT_OPTS, this.logger);
         }
 
-        logger.info("No commercials found");
-        logger.verbose("generating faux ffmeta");
+        this.info("No commercials found");
+        this.verbose("generating faux ffmeta");
 
         return writeFile(`${workingFile}.ffmeta`, ";FFMETADATA1");
       })
@@ -353,58 +375,47 @@ package manager.
        * Run ccextractor to convert closed captions into subtitles.
        * */
       .then(() => {
-        logger.info(`Extracting subtitles for '${fileName}`);
+        this.info(`Extracting subtitles for '${fileName}`);
         CCEXTRACTOR_ARGS.push(
           `"${workingFile}.ts"`,
           "-o",
           `"${workingFile}.srt"`
         );
-        logger.verbose(
+        this.verbose(
           `current command:\nccextractor ${CCEXTRACTOR_ARGS.join(" ")}`
         );
 
-        return spawnBinary(CCEXTRACTOR, CCEXTRACTOR_ARGS);
+        return spawnBinary(CCEXTRACTOR, CCEXTRACTOR_ARGS, this.logger);
       })
       .then((code: void | number) => {
-        if (!code || code === 0 || code === 10) {
-          return;
-        }
-
-        throw code;
-      })
-      .catch((code: string) => {
-        const ccExtractorError = (message: string) => {
-          return this.error(message, {
-            code: code,
-            exit: parseInt(code, 10),
+        const ccExtractorError = (message: string) =>
+          this.error(message, {
+            code: `${code}`,
+            exit: code || 1,
             ref:
               "https://github.com/CCExtractor/ccextractor/blob/v0.88/src/lib_ccx/ccx_common_common.h",
             suggestions: [
               "You can find CCEXTRACTOR error codes defined on github",
             ],
           });
-        };
 
-        switch (code) {
+        switch (`${code}`) {
           case "0":
           case "10":
             return Promise.resolve();
           case "2":
-            ccExtractorError("CCEXTRACTOR exited with no input files");
-            break;
+            return ccExtractorError("CCEXTRACTOR exited with no input files");
           case "3":
-            ccExtractorError("CCEXTRACTOR exited with too many input files");
-            break;
+            return ccExtractorError(
+              "CCEXTRACTOR exited with too many input files"
+            );
           case "4":
           case "7":
-            ccExtractorError("CCEXTRACTOR exited due to bad parameters");
-            break;
+            return ccExtractorError("CCEXTRACTOR exited due to bad parameters");
           case "9":
-            ccExtractorError("CCEXTRACTOR exited with help text");
-            break;
+            return ccExtractorError("CCEXTRACTOR exited with help text");
           default:
-            ccExtractorError(`CCEXTRACTOR exited with code ${code}`);
-            break;
+            return ccExtractorError(`CCEXTRACTOR exited with code ${code}`);
         }
       })
       /**
@@ -422,10 +433,10 @@ package manager.
         );
         FFMPEG_OPTS.push(`"${workingFile}.mp4"`);
 
-        logger.info("Remuxing ts file to mp4 and adding chapter markers");
-        logger.verbose(`current command:\nffmpeg ${FFMPEG_OPTS.join(" ")}`);
+        this.info("Remuxing ts file to mp4 and adding chapter markers");
+        this.verbose(`current command:\nffmpeg ${FFMPEG_OPTS.join(" ")}`);
 
-        return spawnBinary(FFMPEG, FFMPEG_OPTS);
+        return spawnBinary(FFMPEG, FFMPEG_OPTS, this.logger);
       })
       /**
        * Transcode mp4 to mkv using handbrake
@@ -446,24 +457,24 @@ package manager.
           `"${workingFile}.mkv"`
         );
 
-        logger.info(`Transcoding started on '${fileName}'`);
-        logger.verbose(`current command:\nHandbrakeCLI ${hbOptions.join(" ")}`);
+        this.info(`Transcoding started on '${fileName}'`);
+        this.verbose(`current command:\nHandbrakeCLI ${hbOptions.join(" ")}`);
 
-        return spawnBinary(HANDBRAKE, hbOptions);
+        return spawnBinary(HANDBRAKE, hbOptions, this.logger);
       })
-      .catch((code) => {
+      .catch((code) =>
         this.error("HandbrakeCLI failed", {
           code,
           suggestions: [
             "Handbrake doesn't officially support being compiled with ffmpeg?",
           ],
-        });
-      })
+        })
+      )
       /**
        * Copy new mkv back to the original transport stream's directory
        * */
       .then(() => {
-        logger.info(`Copying '${fileName}' back to grab dir`);
+        this.info(`Copying '${fileName}' back to grab dir`);
 
         return copyFile(`${workingFile}.mkv`, dirname(file));
       })
@@ -483,10 +494,8 @@ package manager.
   }
 
   async catch(error: Error) {
-    logger.error(error.message);
-
     if (existsSync(this.lockFile)) {
-      logger.error("Deleting lockfile due to error.");
+      this.logger.warn("Deleting lockfile due to error.");
       unlinkSync(this.lockFile);
     }
 
