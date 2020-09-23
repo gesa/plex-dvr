@@ -19,7 +19,7 @@ $ npm install -g plex-dvr
 $ plexdvr COMMAND
 running command...
 $ plexdvr (-v|--version|version)
-plex-dvr/0.1.2 darwin-x64 node-v14.5.0
+plex-dvr/0.2.0 darwin-x64 node-v14.5.0
 $ plexdvr --help [COMMAND]
 USAGE
   $ plexdvr COMMAND
