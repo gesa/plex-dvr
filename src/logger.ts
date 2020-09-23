@@ -49,13 +49,26 @@ export default function setUpLogger(config: IConfig, level: string) {
     .then(() =>
       logger.add(
         new transports.File({
-          filename: join(config.cacheDir, `${config.dirname}.log`),
+          filename: join(config.cacheDir, "process.log"),
           maxsize: 1000000,
           maxFiles: 10,
           tailable: true,
           zippedArchive: true,
-          level,
+          level: level === "silly" ? "silly" : "verbose",
         })
       )
-    );
+    )
+    .then((logger) => {
+      Object.keys(process.env).forEach((envVar) => {
+        if (envVar.match(/plex/i)) {
+          logger.log({
+            level: "silly",
+            message: `
+${envVar} = ${process.env[envVar]}`,
+          });
+        }
+      });
+
+      return logger;
+    });
 }
