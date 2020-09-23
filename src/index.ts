@@ -24,7 +24,6 @@ import {
   HANDBRAKE_OPTS,
 } from "./constants";
 import { Logger } from "winston";
-import { PrettyPrintableError } from "@oclif/errors";
 
 const { copyFile, writeFile, unlink } = promises;
 const baseConfigOptions: Configuration = {
@@ -71,7 +70,7 @@ This script accepts a transport stream as argument [FILE] and does the
 following:
 
 1. Copies the original ts to a subdirectory within the system tmpdir
-2. Runs \`comskip\` to find commercial boundaries. If found, it
+2. Runs \`comskip\` to find commercial boundaries*. If found, it
   a. Deletes them using \`comcut\`
   b. Generates an edl file to create chapter boundaries at commercial breaks
 3. Extracts closed captions as subtitles
@@ -93,6 +92,9 @@ ccextractor: https://github.com/CCExtractor/ccextractor
 
 You can probably get handbrake, ffmpeg, comskip, and ccextractor from your OS's
 package manager.
+
+* If you have a custom comskip.ini file, run with --sample-config to print
+config directory
 `;
 
   static examples = [
@@ -158,7 +160,7 @@ package manager.
       this.userConfig = JSON.parse(readFileSync(configPath).toString());
     }
 
-    this.logger = setUpLogger(
+    this.logger = await setUpLogger(
       this.config,
       debug ? "silly" : verbose ? "verbose" : "info"
     );
@@ -201,7 +203,7 @@ package manager.
 
     if (options["sample-config"]) {
       this.info(
-        `${this.config.name} will look for a config file at ${this.config.configDir}.`
+        `${this.config.name} will look for a config file as well as comskip.ini at ${this.config.configDir}.`
       );
       this.info(JSON.stringify(baseConfigOptions, null, 2));
 
@@ -218,6 +220,7 @@ package manager.
     const [qS, qE] = options["quiet-time"].split("-");
     const quietStart = parseInt(qS, 10);
     const quietEnd = parseInt(qE, 10);
+    const comskipIniLocation = join(this.config.configDir, "comskip.ini");
 
     this.info(`DVR post-processing script started on "${fileName}"`);
 
@@ -311,7 +314,7 @@ package manager.
       });
     };
 
-    return checkForQuietTime(fileName)
+    await checkForQuietTime(fileName)
       .then(checkForLockFile)
       /**
        * Create DVR lockfile
@@ -340,6 +343,7 @@ package manager.
          * unset -v LD_LIBRARY_PATH
          * */
         COMSKIP_OPTS.push(
+          `--ini="${comskipIniLocation}"`,
           `--output="${workingDir}"`,
           `--output-filename="${fileName}"`,
           `"${workingFile}.ts"`
@@ -358,7 +362,11 @@ package manager.
        * */
       .then(() => {
         if (existsSync(`${workingFile}.edl`)) {
-          COMCUT_OPTS.push(`--work-dir="${workingDir}"`, `"${workingFile}.ts"`);
+          COMCUT_OPTS.push(
+            `--comskip-ini="${comskipIniLocation}"`,
+            `--work-dir="${workingDir}"`,
+            `"${workingFile}.ts"`
+          );
 
           this.info(`Commercials detected! Running Comcut on ${fileName}`);
           this.verbose(`current command:\ncomcut ${COMCUT_OPTS.join(" ")}`);
