@@ -201,6 +201,10 @@ config directory
       flags
     );
 
+    if (!existsSync(file)) {
+      this.error("File not found", { exit: 404 });
+    }
+
     if (options["sample-config"]) {
       this.info(
         `${this.config.name} will look for a config file as well as comskip.ini at ${this.config.configDir}.`
