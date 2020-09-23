@@ -9,6 +9,7 @@ import {
 import { basename, dirname, join } from "path";
 import { tmpdir, type } from "os";
 import { Command, flags } from "@oclif/command";
+import { Logger } from "winston";
 import { spawnBinary } from "./util";
 import setUpLogger from "./logger";
 import {
@@ -23,7 +24,6 @@ import {
   HANDBRAKE,
   HANDBRAKE_OPTS,
 } from "./constants";
-import { Logger } from "winston";
 
 const { copyFile, writeFile, unlink } = promises;
 const baseConfigOptions: Configuration = {
@@ -56,6 +56,8 @@ type Configuration = {
 
 class PlexDvr extends Command {
   private readonly lockFile: string = join(tmpdir(), "dvrProcessing.lock");
+
+  private logger!: Logger;
 
   private userConfig: UserConfiguration = {};
 
@@ -148,16 +150,14 @@ config directory
 
   static args = [{ name: "file" }];
 
-  private logger!: Logger;
-
   async init() {
-    const configPath = join(this.config.configDir, "config.json");
+    const configFile = join(this.config.configDir, "config.json");
     const {
       flags: { verbose, debug },
     } = this.parse(PlexDvr);
 
-    if (existsSync(configPath)) {
-      this.userConfig = JSON.parse(readFileSync(configPath).toString());
+    if (existsSync(configFile)) {
+      this.userConfig = JSON.parse(readFileSync(configFile).toString());
     }
 
     this.logger = await setUpLogger(
