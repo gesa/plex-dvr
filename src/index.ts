@@ -201,10 +201,6 @@ config directory
       flags
     );
 
-    if (!existsSync(file)) {
-      this.error("File not found", { exit: 404 });
-    }
-
     if (options["sample-config"]) {
       this.info(
         `${this.config.name} will look for a config file as well as comskip.ini at ${this.config.configDir}.`
@@ -212,6 +208,10 @@ config directory
       this.info(JSON.stringify(baseConfigOptions, null, 2));
 
       this.exit(0);
+    }
+
+    if (!existsSync(file)) {
+      this.error("File not found", { exit: 404 });
     }
 
     let quietTime = true;
