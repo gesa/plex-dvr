@@ -61,8 +61,8 @@ class PlexDvr extends Command {
   static usage = "[options] [FILE]";
 
   static examples = [
-    "plexdvr /path/to/video",
-    "plexdvr -q 22-06 -e vt_h264 /path/to/video",
+    "plex-dvr /path/to/video",
+    "plex-dvr -q 22-06 -e vt_h264 /path/to/video",
   ];
 
   static flags = {

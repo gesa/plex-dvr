@@ -4,7 +4,7 @@
   "version": "0.4.0",
   "author": "Aki Rose @gesa <hi@akiro.se>",
   "bin": {
-    "plexdvr": "./bin/run"
+    "plex-dvr": "./bin/run"
   },
   "bugs": "https://github.com/gesa/plex-dvr/issues",
   "dependencies": {
