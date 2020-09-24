@@ -22,8 +22,7 @@ the following:
     c. Moves mkv to source directory (presumably .grab/)
 
 It does all of this while respecting quiet hours and ensuring only one file
-is being processed at a time. It also produces detailed logs on its own and
-adds begin/end lines to the PMS logs.
+is being processed at a time. It also produces a verbose and an error log.
 
 \u001B[1mPREREQUISITES\u001B[0m
 comskip: https://github.com/erikkaashoek/Comskip
