@@ -468,8 +468,9 @@ class PlexDvr extends Command {
       return;
     }
 
-    this.logger.log("error", error);
-
+    if (this.logger) {
+      this.logger.log("error", error);
+    }
     if (existsSync(this.lockFile)) {
       this.warn("Exiting process, deleting lockfile due to error.");
       unlinkSync(this.lockFile);
