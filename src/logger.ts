@@ -15,23 +15,25 @@ const defaultFormat = [
 ];
 
 export default function setUpLogger(config: IConfig, level: string) {
-  const logger = createLogger({
-    transports: [
-      new transports.Console({
-        consoleWarnLevels: ["warn"],
-        level,
-        stderrLevels: ["error"],
-        format: combine(
-          ...defaultFormat,
-          colorize({ all: true }),
-          errors({ stack: true })
-        ),
-      }),
-    ],
-  });
-
   return mkdir(dirname(config.errlog), { recursive: true })
+    .then(() => mkdir(config.cacheDir, { recursive: true }))
     .then(() =>
+      createLogger({
+        transports: [
+          new transports.Console({
+            consoleWarnLevels: ["warn"],
+            level,
+            stderrLevels: ["error"],
+            format: combine(
+              ...defaultFormat,
+              colorize({ all: true }),
+              errors({ stack: true })
+            ),
+          }),
+        ],
+      })
+    )
+    .then((logger) =>
       logger.add(
         new transports.File({
           filename: config.errlog,
@@ -45,8 +47,7 @@ export default function setUpLogger(config: IConfig, level: string) {
         })
       )
     )
-    .then(() => mkdir(config.cacheDir, { recursive: true }))
-    .then(() =>
+    .then((logger) =>
       logger.add(
         new transports.File({
           filename: join(config.cacheDir, "process.log"),
