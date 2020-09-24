@@ -9,8 +9,6 @@
   "bugs": "https://github.com/gesa/plex-dvr/issues",
   "dependencies": {
     "@oclif/command": "^1.8.0",
-    "@oclif/config": "^1.17.0",
-    "@oclif/plugin-help": "^3.2.0",
     "tslib": "^1.13.0",
     "winston": "^3.3.3"
   },
@@ -39,14 +37,15 @@
   "license": "MIT",
   "main": "lib/index.js",
   "oclif": {
-    "bin": "plexdvr"
+    "bin": "plex-dvr",
+    "helpClass": "./lib/info"
   },
   "repository": "gesa/plex-dvr",
   "scripts": {
     "posttest": "eslint . --ext .ts --config .eslintrc",
     "prepack": "rm -rf lib && tsc -b && oclif-dev readme",
-    "test": "echo NO TESTS",
-    "version": "oclif-dev manifest && oclif-dev readme && git add oclif.manifest.json README.md"
+    "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\"",
+    "version": "oclif-dev readme && git add README.md"
   },
   "types": "lib/index.d.ts"
 }

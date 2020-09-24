@@ -60,42 +60,6 @@ class PlexDvr extends Command {
 
   static usage = "[options] [FILE]";
 
-  static description = `Plex DVR postprocessing script
-
-Prerequisites:
-comskip, comcut, ccextractor, ffmpeg, HandbrakeCLI
-
-This script accepts a transport stream as argument [FILE] and does the
-following:
-
-1. Copies the original ts to a subdirectory within the system tmpdir
-2. Runs \`comskip\` to find commercial boundaries*. If found, it
-  a. Deletes them using \`comcut\`
-  b. Generates an edl file to create chapter boundaries at commercial breaks
-3. Extracts closed captions as subtitles
-4. Remuxes to mp4 to add chapter markers
-5. Transcodes to mkv to compress and add subtitles
-6. Cleans up after itself
-  a. Deletes original ts
-  b. Deletes temporary files
-  c. Moves mkv to source directory (typically .grab/)
-
-It does all of this while respecting quiet hours and ensuring only one file
-is being processed at a time. It also produces detailed logs on its own and
-adds begin/end lines to the PMS logs.
-
-ffmpeg: https://ffmpeg.org/
-comskip: https://github.com/erikkaashoek/Comskip
-comcut: https://github.com/BrettSheleski/comchap
-ccextractor: https://github.com/CCExtractor/ccextractor
-
-You can probably get handbrake, ffmpeg, comskip, and ccextractor from your OS's
-package manager.
-
-* If you have a custom comskip.ini file, run with --sample-config to print
-config directory
-`;
-
   static examples = [
     "plexdvr /path/to/video",
     "plexdvr -q 22-06 -e vt_h264 /path/to/video",
