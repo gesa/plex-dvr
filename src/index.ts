@@ -6,9 +6,11 @@ import {
   statSync,
   unlinkSync,
 } from "fs";
+import { inspect } from "util";
 import { basename, dirname, join } from "path";
 import { tmpdir, type } from "os";
 import { Command, flags } from "@oclif/command";
+import { ExitError } from "@oclif/errors";
 import { Logger } from "winston";
 import { spawnBinary } from "./util";
 import setUpLogger from "./logger";
@@ -148,17 +150,26 @@ config directory
   async init() {
     const configFile = join(this.config.configDir, "config.json");
     const {
-      flags: { verbose, debug },
+      flags: { verbose, debug, "sample-config": sampleConfig },
     } = this.parse(PlexDvr);
-
-    if (existsSync(configFile)) {
-      this.userConfig = JSON.parse(readFileSync(configFile).toString());
-    }
 
     this.logger = await setUpLogger(
       this.config,
       debug ? "silly" : verbose ? "verbose" : "info"
     );
+
+    if (sampleConfig) {
+      this.log(
+        `${this.config.name} will look in ${this.config.configDir} for a config file (config.json) as well as a comskip.ini.`
+      );
+      this.log(inspect(baseConfigOptions, false, 2, true));
+
+      this.exit(0);
+    }
+
+    if (existsSync(configFile)) {
+      this.userConfig = JSON.parse(readFileSync(configFile).toString());
+    }
   }
 
   warn(input: string | Error) {
@@ -179,12 +190,6 @@ config directory
     this.logger.log({ level: "verbose", message });
   }
 
-  log(message: string, ...rest: any[]) {
-    this.logger.log({ level: "log", message, ...rest });
-
-    super.log(message, ...rest);
-  }
-
   async run() {
     const {
       args: { file },
@@ -195,15 +200,6 @@ config directory
       this.userConfig,
       flags
     );
-
-    if (options["sample-config"]) {
-      this.info(
-        `${this.config.name} will look for in ${this.config.configDir} for a config file (config.json) as well as a comskip.ini.`
-      );
-      this.info(JSON.stringify(baseConfigOptions, null, 2));
-
-      this.exit(0);
-    }
 
     if (!existsSync(file)) {
       this.error("File not found", { exit: 404 });
@@ -503,15 +499,19 @@ config directory
       .catch(() => this.catch);
   }
 
-  async catch(error: Error) {
+  async catch(error: Error | ExitError) {
+    if (error instanceof ExitError && error.oclif.exit === 0) {
+      return;
+    }
+
     this.logger.log("error", error);
 
     if (existsSync(this.lockFile)) {
-      this.warn("Deleting lockfile due to error.");
+      this.warn("Exiting process, deleting lockfile due to error.");
       unlinkSync(this.lockFile);
     }
 
-    throw error;
+    return super.catch(error);
   }
 }
 
