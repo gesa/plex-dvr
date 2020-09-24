@@ -198,7 +198,7 @@ config directory
 
     if (options["sample-config"]) {
       this.info(
-        `${this.config.name} will look for a config file as well as comskip.ini at ${this.config.configDir}.`
+        `${this.config.name} will look for in ${this.config.configDir} for a config file (config.json) as well as a comskip.ini.`
       );
       this.info(JSON.stringify(baseConfigOptions, null, 2));
 
@@ -352,7 +352,7 @@ config directory
         this.info(`Running ComSkip on '${fileName}'`);
         this.verbose(`current command:\ncomskip ${COMSKIP_OPTS.join(" ")}`);
 
-        return spawnBinary('comskip', COMSKIP_OPTS, this.logger);
+        return spawnBinary("comskip", COMSKIP_OPTS, this.logger);
       }, this.catch)
       /**
        * Run Comcut if there's an edl file denoting chapter boundaries.
@@ -370,7 +370,7 @@ config directory
           this.info(`Commercials detected! Running Comcut on ${fileName}`);
           this.verbose(`current command:\ncomcut ${COMCUT_OPTS.join(" ")}`);
 
-          return spawnBinary('comcut', COMCUT_OPTS, this.logger);
+          return spawnBinary("comcut", COMCUT_OPTS, this.logger);
         }
 
         this.info("No commercials found");
@@ -392,7 +392,7 @@ config directory
           `current command:\nccextractor ${CCEXTRACTOR_ARGS.join(" ")}`
         );
 
-        return spawnBinary('ccextractor', CCEXTRACTOR_ARGS, this.logger);
+        return spawnBinary("ccextractor", CCEXTRACTOR_ARGS, this.logger);
       }, this.catch)
       .catch((code: void | number) => {
         const ccExtractorError = (message: string) =>
@@ -443,7 +443,7 @@ config directory
         this.info("Remuxing ts file to mp4 and adding chapter markers");
         this.verbose(`current command:\nffmpeg ${FFMPEG_OPTS.join(" ")}`);
 
-        return spawnBinary('ffmpeg', FFMPEG_OPTS, this.logger);
+        return spawnBinary("ffmpeg", FFMPEG_OPTS, this.logger);
       })
       /**
        * Transcode mp4 to mkv using handbrake
@@ -467,7 +467,7 @@ config directory
         this.info(`Transcoding started on '${fileName}'`);
         this.verbose(`current command:\nHandbrakeCLI ${hbOptions.join(" ")}`);
 
-        return spawnBinary('HandBrakeCLI', hbOptions, this.logger);
+        return spawnBinary("HandBrakeCLI", hbOptions, this.logger);
       })
       .catch((code) =>
         this.error("HandBrakeCLI failed", {
