@@ -66,4 +66,3 @@ $ plex-dvr [options] [FILE]
 plex-dvr /path/to/video
 plex-dvr -q 22-06 -e vt_h264 /path/to/video
 ```
-
