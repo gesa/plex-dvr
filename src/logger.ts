@@ -16,16 +16,16 @@ const defaultFormat = [
 
 export default function setUpLogger(config: IConfig, level: string) {
   const logger = createLogger({
-    format: combine(
-      ...defaultFormat,
-      colorize({ message: true }),
-      errors({ stack: true })
-    ),
     transports: [
       new transports.Console({
         consoleWarnLevels: ["warn"],
         level,
         stderrLevels: ["error"],
+        format: combine(
+          ...defaultFormat,
+          colorize({ all: true }),
+          errors({ stack: true })
+        ),
       }),
     ],
   });
@@ -50,6 +50,7 @@ export default function setUpLogger(config: IConfig, level: string) {
       logger.add(
         new transports.File({
           filename: join(config.cacheDir, "process.log"),
+          format: combine(...defaultFormat),
           maxsize: 1000000,
           maxFiles: 10,
           tailable: true,
