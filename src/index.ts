@@ -107,6 +107,26 @@ class PlexDvr extends Command {
       description:
         "Include stdout and stderr from all tools in logs (overrides `verbose' flag)",
     }),
+    "comskip-location": flags.string({
+      default: "comskip",
+      description: "Comskip binary location",
+    }),
+    "comcut-location": flags.string({
+      default: "comcut",
+      description: "Comcut binary location",
+    }),
+    "ccextractor-location": flags.string({
+      default: "ccextractor",
+      description: "CCExtractor binary location",
+    }),
+    "ffmpeg-location": flags.string({
+      default: "ffmpeg",
+      description: "ffmpeg binary location",
+    }),
+    "handbrake-location": flags.string({
+      default: "HandBrakeCLI",
+      description: "Handbrake binary location",
+    }),
   };
 
   static args = [{ name: "file" }];
@@ -312,7 +332,11 @@ class PlexDvr extends Command {
         this.info(`Running ComSkip on '${fileName}'`);
         this.verbose(`current command:\ncomskip ${COMSKIP_OPTS.join(" ")}`);
 
-        return spawnBinary("comskip", COMSKIP_OPTS, this.logger);
+        return spawnBinary(
+          flags["comskip-location"],
+          COMSKIP_OPTS,
+          this.logger
+        );
       }, this.catch)
       /**
        * Run Comcut if there's an edl file denoting chapter boundaries.
@@ -330,7 +354,11 @@ class PlexDvr extends Command {
           this.info(`Commercials detected! Running Comcut on ${fileName}`);
           this.verbose(`current command:\ncomcut ${COMCUT_OPTS.join(" ")}`);
 
-          return spawnBinary("comcut", COMCUT_OPTS, this.logger);
+          return spawnBinary(
+            flags["comcut-location"],
+            COMCUT_OPTS,
+            this.logger
+          );
         }
 
         this.info("No commercials found");
@@ -352,7 +380,11 @@ class PlexDvr extends Command {
           `current command:\nccextractor ${CCEXTRACTOR_ARGS.join(" ")}`
         );
 
-        return spawnBinary("ccextractor", CCEXTRACTOR_ARGS, this.logger);
+        return spawnBinary(
+          flags["ccextractor-location"],
+          CCEXTRACTOR_ARGS,
+          this.logger
+        );
       }, this.catch)
       .catch((code: void | number) => {
         const ccExtractorError = (message: string) =>
@@ -403,7 +435,7 @@ class PlexDvr extends Command {
         this.info("Remuxing ts file to mp4 and adding chapter markers");
         this.verbose(`current command:\nffmpeg ${FFMPEG_OPTS.join(" ")}`);
 
-        return spawnBinary("ffmpeg", FFMPEG_OPTS, this.logger);
+        return spawnBinary(flags["ffmpeg-location"], FFMPEG_OPTS, this.logger);
       })
       /**
        * Transcode mp4 to mkv using handbrake
@@ -427,7 +459,7 @@ class PlexDvr extends Command {
         this.info(`Transcoding started on '${fileName}'`);
         this.verbose(`current command:\nHandbrakeCLI ${hbOptions.join(" ")}`);
 
-        return spawnBinary("HandBrakeCLI", hbOptions, this.logger);
+        return spawnBinary(flags["handbrake-location"], hbOptions, this.logger);
       })
       .catch((code) =>
         this.error("HandBrakeCLI failed", {
