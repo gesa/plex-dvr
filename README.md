@@ -37,7 +37,7 @@ You can likely get some or all of these programs from your package manager.
 
 ## Using in Plex
 
-As of Plex Media Server v1.19.3, the postprocessing script _must_ be called from the Scripts directory inside the application data directory. For easy setup, use [the quick start](https://github.com/gesa/plex-dvr-run).
+As of Plex Media Server v1.19.3, the postprocessing script _must_ be called from the Scripts directory inside the application data directory.
 
 ## Usage
 
