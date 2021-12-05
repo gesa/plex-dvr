@@ -27,10 +27,10 @@ It does all of this while respecting quiet hours and ensuring only one file is b
 
 ## PREREQUISITES
 
+- **`ffmpeg`:** https://ffmpeg.org/
 - **`comskip`:** https://github.com/erikkaashoek/Comskip
 - **`comcut`:** https://github.com/BrettSheleski/comchap
 - **`ccextractor`:** https://github.com/CCExtractor/ccextractor
-- **`ffmpeg`:** https://ffmpeg.org/
 - **`HandbrakeCLI`:** https://handbrake.fr/downloads.php
 
 You can likely get some or all of these programs from your package manager.
