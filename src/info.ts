@@ -25,13 +25,20 @@ It does all of this while respecting quiet hours and ensuring only one file
 is being processed at a time. It also produces a verbose and an error log.
 
 \u001B[1mPREREQUISITES\u001B[0m
+ffmpeg: https://ffmpeg.org/
 comskip: https://github.com/erikkaashoek/Comskip
 comcut: https://github.com/BrettSheleski/comchap
 ccextractor: https://github.com/CCExtractor/ccextractor
-ffmpeg: https://ffmpeg.org/
 HandbrakeCLI: https://handbrake.fr/downloads.php
 
 You can likely get some or all of these programs from your package manager.
+
+\u001B[1mSETUP\u001B[0m
+
+plex-dvr looks for your comskip.ini file at $HOME/.config/plex-dvr/comskip.ini
+You can also save yourself some hassle and set any of the above options as
+default in $HOME/.config/plex-dvr/config.json. They will be overwritten by CLI
+options.
 `);
 
     return super.showCommandHelp(command);

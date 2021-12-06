@@ -66,3 +66,10 @@ $ plex-dvr [options] [FILE]
 plex-dvr /path/to/video
 plex-dvr -q 22-06 -e vt_h264 /path/to/video
 ```
+
+## Setup
+
+plex-dvr looks for your comskip.ini file at $HOME/.config/plex-dvr/comskip.ini
+You can also save yourself some hassle and set any of the above options as
+default in $HOME/.config/plex-dvr/config.json. They will be overwritten by CLI
+options.

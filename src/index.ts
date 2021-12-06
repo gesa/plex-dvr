@@ -127,6 +127,13 @@ class PlexDvr extends Command {
       default: "HandBrakeCLI",
       description: "Handbrake binary location",
     }),
+    "handbrake-config": flags.string({
+      char: "H",
+      exclusive: ["encoder", "encoder-preset"],
+      hidden: true,
+      description:
+        "Override Handbrake settings by supplying the path to a Handbrake preset JSON file",
+    }),
   };
 
   static args = [{ name: "file" }];
@@ -422,30 +429,31 @@ class PlexDvr extends Command {
        * chapter markers.
        * */
       .then(() => {
-        FFMPEG_OPTS.splice(
-          0,
-          0,
+        const ffmpegOpts = [
           "-i",
           `"${workingFile}.ts"`,
           "-i",
-          `"${workingFile}.ffmeta"`
-        );
-        FFMPEG_OPTS.push(`"${workingFile}.mp4"`);
+          `"${workingFile}.ffmeta"`,
+          ...FFMPEG_OPTS,
+          `"${workingFile}.mp4"`,
+        ];
 
         this.info("Remuxing ts file to mp4 and adding chapter markers");
-        this.verbose(`current command:\nffmpeg ${FFMPEG_OPTS.join(" ")}`);
+        this.verbose(`current command:\nffmpeg ${ffmpegOpts.join(" ")}`);
 
-        return spawnBinary(flags["ffmpeg-location"], FFMPEG_OPTS, this.logger);
+        return spawnBinary(flags["ffmpeg-location"], ffmpegOpts, this.logger);
       })
       /**
        * Transcode mp4 to mkv using handbrake
        * */
       .then(() => {
-        const hbOptions = HANDBRAKE_OPTS.map((option) => {
-          if (option === "_VIDEO_ENCODER_") return options.encoder;
-          if (option === "_VIDEO_PRESET_") return options["encoder-preset"];
-          return option;
-        });
+        const hbOptions = options["handbrake-config"]
+          ? [" --preset-import-file", options["handbrake-config"].toString()]
+          : HANDBRAKE_OPTS.map((option): string => {
+              if (option === "_VIDEO_ENCODER_") return options.encoder;
+              if (option === "_VIDEO_PRESET_") return options["encoder-preset"];
+              return option;
+            });
 
         hbOptions.push(
           "--srt-file",
@@ -503,6 +511,7 @@ class PlexDvr extends Command {
     if (this.logger) {
       this.logger.log("error", error);
     }
+
     if (existsSync(this.lockFile)) {
       this.warn("Exiting process, deleting lockfile due to error.");
       unlinkSync(this.lockFile);
