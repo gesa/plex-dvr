@@ -8,7 +8,7 @@ import {
 } from "fs";
 import { inspect } from "util";
 import { basename, dirname, join } from "path";
-import { tmpdir, type } from "os";
+import { tmpdir } from "os";
 import { Command, flags } from "@oclif/command";
 import { ExitError } from "@oclif/errors";
 import { Logger } from "winston";
@@ -24,8 +24,8 @@ import {
 
 const { copyFile, writeFile, unlink } = promises;
 const baseConfigOptions: Configuration = {
-  encoder: type() === "Darwin" ? "vt_h264" : "qsv_h265",
-  "encoder-preset": "default",
+  // encoder: type() === "Darwin" ? "vt_h264" : "qsv_h265",
+  // "encoder-preset": "default",
   "ignore-quiet-time": false,
   "keep-original": false,
   "keep-temp": false,
@@ -42,8 +42,8 @@ type UserConfiguration = {
 };
 
 type Configuration = {
-  encoder: string;
-  "encoder-preset": string;
+  // encoder: string;
+  // "encoder-preset": string;
   "ignore-quiet-time": boolean;
   "keep-original": boolean;
   "keep-temp": boolean;
@@ -127,12 +127,17 @@ class PlexDvr extends Command {
       default: "HandBrakeCLI",
       description: "Handbrake binary location",
     }),
-    "handbrake-config": flags.string({
+    "handbrake-presets-import": flags.string({
       char: "H",
-      exclusive: ["encoder", "encoder-preset"],
       hidden: true,
       description:
-        "Override Handbrake settings by supplying the path to a Handbrake preset JSON file",
+        "Override Handbrake settings by supplying the path to a Handbrake preset JSON file or pass 'gui' to load presets from your local Handbrake gui.",
+    }),
+    "handbrake-preset-name": flags.string({
+      char: "P",
+      hidden: true,
+      description:
+        "Preset to select from loaded presets (default, gui, or json file)",
     }),
   };
 
@@ -447,13 +452,31 @@ class PlexDvr extends Command {
        * Transcode mp4 to mkv using handbrake
        * */
       .then(() => {
-        const hbOptions = options["handbrake-config"]
-          ? [" --preset-import-file", options["handbrake-config"].toString()]
-          : HANDBRAKE_OPTS.map((option): string => {
-              if (option === "_VIDEO_ENCODER_") return options.encoder;
-              if (option === "_VIDEO_PRESET_") return options["encoder-preset"];
-              return option;
-            });
+        const hbOptions = HANDBRAKE_OPTS;
+
+        if (options["handbrake-presets-import"] === "gui") {
+          hbOptions.push("--preset-import-gui");
+        } else if (options["handbrake-presets-import"]) {
+          hbOptions.push(
+            "--preset-import-file",
+            options["handbrake-presets-import"].toString()
+          );
+        }
+
+        if (options["handbrake-preset-name"]) {
+          hbOptions.push("--preset", `"${options["handbrake-preset-name"]}"`);
+        }
+
+        if (options.encoder) {
+          hbOptions.push("--encoder", options.encoder.toString());
+        }
+
+        if (options["encoder-preset"]) {
+          hbOptions.push(
+            "--encoder-preset",
+            options["encoder-preset"].toString()
+          );
+        }
 
         hbOptions.push(
           "--srt-file",
@@ -491,15 +514,24 @@ class PlexDvr extends Command {
       /**
        * Delete temporary directory, if applicable
        * */
-      .then(() => (deleteTemp ? unlink(workingDir) : null), this.catch)
+      .then(() => {
+        this.silly("Deleting temp directory");
+        if (deleteTemp) return unlink(workingDir);
+      }, this.catch)
       /**
        * Delete original transport stream, if applicable
        * */
-      .then(() => (deleteOriginal ? unlink(file) : null), this.catch)
+      .then(() => {
+        this.silly("Deleting original ts");
+        if (deleteOriginal) return unlink(file);
+      }, this.catch)
       /**
-       * Delete lockfile, time to process the next one!v
+       * Delete lockfile, time to process the next one!
        * */
-      .then(() => unlink(lockFile))
+      .then(() => {
+        this.silly("Deleting original ts");
+        return unlink(lockFile);
+      })
       .catch(() => this.catch);
   }
 
