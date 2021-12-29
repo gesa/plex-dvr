@@ -49,15 +49,22 @@ $ plex-dvr [options] [FILE]
 
 | option | type | description |
 | :-: |:-: | --- |
+| `--help`, `-h` | | show CLI help |
+| `--verbose`, `-v` |  | Verbose logging to the console. |
 | `--debug`, `-d` | | Include stdout and stderr from all tools in logs (overrides `verbose` flag) |
 | `--encoder`, `-e` | string | Video encoder string to pass to Handbrake. Run `HandbrakeCLI --help` to see available encoders. |
-| `--help`, `-h` | | show CLI help |
-| `--quiet-time`, `-q` | string | Quiet time, in the format of `NN-NN` where NN is an hour on the 24-hour clock (0 being midnight, 23 being 11pm). Default value `03-12` |
-| `--verbose`, `-v` |  | Verbose logging to the console. |
 | `--encoder-preset` | string | Video encoder preset to pass to Handbrake. Run `HandbrakeCLI --encoder-preset-list <string encoder>` to see available presets. |
+| `--quiet-time`, `-q` | string | Quiet time, in the format of `NN-NN` where NN is an hour on the 24-hour clock (0 being midnight, 23 being 11pm). Default value `03-12` because I am a night owl. |
 | `--ignore-quiet-time` | | Process file immediately without checking against quiet time hours. |
-| `--[no-]keep-original` | | Prevent original `.ts` file produced by Plex's DVR from being deleted. Default is false, prepend with `--no-` to flip. |
-| `--[no-]keep-temp` | | Prevent temporary working directory from being deleted.  Default is false, prepend with `--no-` to flip. |
+| `--ccextractor-location` | string | [default: ccextractor] CCExtractor binary location |
+| `--comcut-location` | string | [default: comcut] Comcut binary location |
+| `--comskip-location` | string | [default: comskip] Comskip binary location |
+| `--ffmpeg-location` | string | [default: ffmpeg] ffmpeg binary location |
+| `--handbrake-location` | string | [default: HandBrakeCLI] Handbrake binary location |
+| `--handbrake-presets-import` | string | Load Handbrake presets file. Defaults to whatever presets are available in the gui, or barring that, nothing. |
+| `--handbrake-preset-name` | string | Name of preset to select from gui or supplied preset file |
+| `--[no-]keep-original` | | Prevent original `.ts` file produced by Plex's DVR from being deleted. Default behavior is to delete. |
+| `--[no-]keep-temp` | | Prevent temporary working directory from being deleted. Default behavior is to delete. |
 | `--sample-config` | | Print default config values & config directory location and exit. |
 
 ## Examples

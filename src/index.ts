@@ -78,12 +78,12 @@ class PlexDvr extends Command {
     "keep-original": flags.boolean({
       allowNo: true,
       description:
-        "Prevent original `.ts' file produced by Plex's DVR from being deleted. Default is false, prepend with `--no-` to override local config.",
+        "Prevent original `.ts' file produced by Plex's DVR from being deleted. \u001B[1mDefault behavior is to delete\u001B[0m",
     }),
     "keep-temp": flags.boolean({
       allowNo: true,
       description:
-        "Prevent temporary working directory from being deleted.  Default is false, prepend with `--no-` to override local config.",
+        "Prevent temporary working directory from being deleted. \u001B[1mDefault behavior is to delete\u001B[0m",
     }),
     "quiet-time": flags.string({
       char: "q",
@@ -124,15 +124,12 @@ class PlexDvr extends Command {
     }),
     "handbrake-presets-import": flags.string({
       char: "H",
-      hidden: true,
       description:
-        "Override Handbrake settings by supplying the path to a Handbrake preset JSON file or pass 'gui' to load presets from your local Handbrake gui.",
+        "Load Handbrake presets file. Defaults to whatever presets are available in the gui, or barring that, nothing.",
     }),
     "handbrake-preset-name": flags.string({
       char: "P",
-      hidden: true,
-      description:
-        "Preset to select from loaded presets (default, gui, or json file)",
+      description: "Name of preset to select from gui or supplied preset file",
     }),
   };
 
@@ -463,13 +460,13 @@ class PlexDvr extends Command {
       .then(() => {
         const hbOptions = [];
 
-        if (options["handbrake-presets-import"] === "gui") {
-          hbOptions.push("--preset-import-gui");
-        } else if (options["handbrake-presets-import"]) {
+        if (options["handbrake-presets-import"]) {
           hbOptions.push(
             "--preset-import-file",
             options["handbrake-presets-import"].toString()
           );
+        } else {
+          hbOptions.push("--preset-import-gui");
         }
 
         if (options["handbrake-preset-name"]) {
