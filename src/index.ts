@@ -307,7 +307,7 @@ class PlexDvr extends Command {
     };
 
     process.on("SIGINT", () => {
-      this.silly("Exit requested, deleting lockfile");
+      this.info("Exit requested, deleting lockfile");
 
       this.exit(0);
     });
@@ -522,7 +522,7 @@ class PlexDvr extends Command {
        * */
       .then(() => {
         if (deleteTemp) {
-          this.silly("Deleting temp directory");
+          this.verbose("Deleting temp directory");
 
           return unlink(workingDir);
         }
@@ -532,7 +532,7 @@ class PlexDvr extends Command {
        * */
       .then(() => {
         if (deleteOriginal) {
-          this.silly("Deleting original ts");
+          this.verbose("Deleting original ts");
 
           return unlink(originalFile);
         }
@@ -541,7 +541,7 @@ class PlexDvr extends Command {
        * Delete lockfile, time to process the next one!
        * */
       .then(() => {
-        this.silly("Deleting lockfile");
+        this.verbose("Deleting lockfile");
 
         return unlink(lockFile);
       })

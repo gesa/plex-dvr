@@ -7,6 +7,8 @@ export function spawnBinary(
   logger: Logger
 ): Promise<void | number> {
   return new Promise((resolve, reject) => {
+    let currentStdOut = "";
+    let currentStdErr = "";
     const spawnedProcess = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
       shell: true,
@@ -14,20 +16,36 @@ export function spawnBinary(
 
     spawnedProcess.stdout.setEncoding("utf8");
 
+    /**
+     * When logging verbosely, update the log every five minutes with the latest
+     * update from the current command
+     * */
+    const processCheckIn = setInterval(() => {
+      logger.verbose(`${cmd} check-in: ${currentStdOut}`);
+      logger.verbose(`${cmd} check-in: ${currentStdErr}`);
+    }, 300000);
+
     spawnedProcess.stderr.on("data", (data) => {
-      logger.silly(data.toString());
+      currentStdErr = data.toString();
+      logger.silly(currentStdErr);
     });
 
     spawnedProcess.stdout.on("data", (data) => {
-      logger.silly(data);
+      currentStdOut = data;
+      logger.silly(currentStdOut);
     });
 
     spawnedProcess.on("error", (err) => {
       logger.error(`${cmd} threw an error ${err}`);
+
+      clearInterval(processCheckIn);
+
       reject(err);
     });
 
     spawnedProcess.on("close", (code) => {
+      clearInterval(processCheckIn);
+
       if (code === 0) {
         resolve(code);
       } else {
