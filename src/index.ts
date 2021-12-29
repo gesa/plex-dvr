@@ -19,13 +19,10 @@ import {
   COMSKIP_OPTS,
   CCEXTRACTOR_ARGS,
   FFMPEG_OPTS,
-  HANDBRAKE_OPTS,
 } from "./constants";
 
 const { copyFile, writeFile, unlink } = promises;
 const baseConfigOptions: Configuration = {
-  // encoder: type() === "Darwin" ? "vt_h264" : "qsv_h265",
-  // "encoder-preset": "default",
   "ignore-quiet-time": false,
   "keep-original": false,
   "keep-temp": false,
@@ -42,8 +39,6 @@ type UserConfiguration = {
 };
 
 type Configuration = {
-  // encoder: string;
-  // "encoder-preset": string;
   "ignore-quiet-time": boolean;
   "keep-original": boolean;
   "keep-temp": boolean;
@@ -186,9 +181,15 @@ class PlexDvr extends Command {
     this.logger.log({ level: "verbose", message });
   }
 
+  exit(code?: number): never {
+    unlinkSync(this.lockFile);
+
+    super.exit(code);
+  }
+
   async run() {
     const {
-      args: { file },
+      args: { file: originalFile },
       flags,
     } = this.parse(PlexDvr);
     const options: Configuration = Object.assign(
@@ -197,7 +198,7 @@ class PlexDvr extends Command {
       flags
     );
 
-    if (!existsSync(file)) {
+    if (!existsSync(originalFile)) {
       this.error("File not found", { exit: 404 });
     }
 
@@ -206,7 +207,7 @@ class PlexDvr extends Command {
     const deleteTemp = !options["keep-temp"];
     const deleteOriginal = !options["keep-original"];
     const workingDir = mkdtempSync(join(tmpdir(), "plex-"));
-    const fileName = basename(file, ".ts");
+    const fileName = basename(originalFile, ".ts");
     const workingFile = join(workingDir, fileName);
     const [qS, qE] = options["quiet-time"].split("-");
     const quietStart = parseInt(qS, 10);
@@ -305,6 +306,12 @@ class PlexDvr extends Command {
       });
     };
 
+    process.on("SIGINT", () => {
+      this.silly("Exit requested, deleting lockfile");
+
+      this.exit(0);
+    });
+
     await checkForQuietTime(fileName)
       .then(checkForLockFile)
       /**
@@ -323,7 +330,7 @@ class PlexDvr extends Command {
       .then(() => {
         this.verbose(`Copying original ts to ${workingDir}`);
 
-        return copyFile(file, `${workingFile}.ts`);
+        return copyFile(originalFile, `${workingFile}.ts`);
       }, this.catch)
       /**
        * Run Comskip to find commercials and generate metadata
@@ -403,8 +410,7 @@ class PlexDvr extends Command {
           this.error(message, {
             code: `${code}`,
             exit: code || 1,
-            ref:
-              "https://github.com/CCExtractor/ccextractor/blob/v0.88/src/lib_ccx/ccx_common_common.h",
+            ref: "https://github.com/CCExtractor/ccextractor/blob/v0.88/src/lib_ccx/ccx_common_common.h",
             suggestions: [
               "You can find CCEXTRACTOR error codes defined on github",
             ],
@@ -452,7 +458,7 @@ class PlexDvr extends Command {
        * Transcode mp4 to mkv using handbrake
        * */
       .then(() => {
-        const hbOptions = HANDBRAKE_OPTS;
+        const hbOptions = [];
 
         if (options["handbrake-presets-import"] === "gui") {
           hbOptions.push("--preset-import-gui");
@@ -504,35 +510,42 @@ class PlexDvr extends Command {
        * Copy new mkv back to the original transport stream's directory
        * */
       .then(() => {
-        this.info(`Copying '${fileName}' back to ${dirname(file)}`);
+        this.info(`Copying '${fileName}' back to ${dirname(originalFile)}`);
 
         return copyFile(
           `${workingFile}.mkv`,
-          join(dirname(file), `${fileName}.mkv`)
+          join(dirname(originalFile), `${fileName}.mkv`)
         );
       }, this.catch)
       /**
        * Delete temporary directory, if applicable
        * */
       .then(() => {
-        this.silly("Deleting temp directory");
-        if (deleteTemp) return unlink(workingDir);
-      }, this.catch)
+        if (deleteTemp) {
+          this.silly("Deleting temp directory");
+
+          return unlink(workingDir);
+        }
+      })
       /**
        * Delete original transport stream, if applicable
        * */
       .then(() => {
-        this.silly("Deleting original ts");
-        if (deleteOriginal) return unlink(file);
-      }, this.catch)
+        if (deleteOriginal) {
+          this.silly("Deleting original ts");
+
+          return unlink(originalFile);
+        }
+      })
       /**
        * Delete lockfile, time to process the next one!
        * */
       .then(() => {
-        this.silly("Deleting original ts");
+        this.silly("Deleting lockfile");
+
         return unlink(lockFile);
       })
-      .catch(() => this.catch);
+      .catch(this.catch);
   }
 
   async catch(error: Error | ExitError) {

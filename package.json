@@ -16,10 +16,10 @@
     "@oclif/dev-cli": "^1.22.2",
     "@types/node": "^10.17.29",
     "eslint": "^5.16.0",
-    "eslint-config-oclif": "^3.1.0",
+    "eslint-config-oclif": "^4.0.0",
     "eslint-config-oclif-typescript": "^0.1.0",
     "eslint-config-prettier": "^6.11.0",
-    "prettier": "^2.1.1",
+    "prettier": "^2.5.1",
     "ts-node": "^8.10.2",
     "typescript": "^3.9.7"
   },
