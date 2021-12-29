@@ -182,7 +182,10 @@ class PlexDvr extends Command {
   }
 
   exit(code?: number): never {
-    unlinkSync(this.lockFile);
+    if (existsSync(this.lockFile)) {
+      this.warn("Exiting process, deleting lockfile.");
+      unlinkSync(this.lockFile);
+    }
 
     super.exit(code);
   }
