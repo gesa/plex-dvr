@@ -21,7 +21,7 @@ import {
   FFMPEG_OPTS,
 } from "./constants";
 
-const { copyFile, writeFile, unlink } = promises;
+const { copyFile, writeFile, unlink, rm } = promises;
 const baseConfigOptions: Configuration = {
   "ignore-quiet-time": false,
   "keep-original": false,
@@ -524,7 +524,7 @@ class PlexDvr extends Command {
         if (deleteTemp) {
           this.verbose("Deleting temp directory");
 
-          return unlink(workingDir);
+          return rm(workingDir, { recursive: true, force: true });
         }
       })
       /**
