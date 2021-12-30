@@ -10,7 +10,7 @@ import { inspect } from "util";
 import { basename, dirname, join } from "path";
 import { tmpdir } from "os";
 import { Command, flags } from "@oclif/command";
-import { ExitError } from "@oclif/errors";
+import { ExitError, handle } from "@oclif/errors";
 import { Logger } from "winston";
 import { spawnBinary } from "./util";
 import setUpLogger from "./logger";
@@ -180,7 +180,7 @@ class PlexDvr extends Command {
 
   exit(code?: number): never {
     if (existsSync(this.lockFile)) {
-      this.warn("Exiting process, deleting lockfile.");
+      this.info("Exiting process, deleting lockfile.");
       unlinkSync(this.lockFile);
     }
 
@@ -306,9 +306,11 @@ class PlexDvr extends Command {
       });
     };
 
-    process.on("SIGINT", () => {
-      this.info("Exit requested, deleting lockfile");
+    process.on("unhandledRejection", () => {
+      this.exit(0);
+    });
 
+    process.on("SIGINT", () => {
       this.exit(0);
     });
 
@@ -537,15 +539,10 @@ class PlexDvr extends Command {
           return unlink(originalFile);
         }
       })
-      /**
-       * Delete lockfile, time to process the next one!
-       * */
-      .then(() => {
-        this.verbose("Deleting lockfile");
-
-        return unlink(lockFile);
-      })
-      .catch(this.catch);
+      .catch(this.catch)
+      .finally(() => {
+        this.exit(0);
+      });
   }
 
   async catch(error: Error | ExitError) {
@@ -557,12 +554,7 @@ class PlexDvr extends Command {
       this.logger.log("error", error);
     }
 
-    if (existsSync(this.lockFile)) {
-      this.warn("Exiting process, deleting lockfile due to error.");
-      unlinkSync(this.lockFile);
-    }
-
-    return super.catch(error);
+    return handle(error);
   }
 }
 
