@@ -51,6 +51,8 @@ class PlexDvr extends Command {
 
   private logger!: Logger;
 
+  private level!: "silly" | "verbose" | "info";
+
   private userConfig: UserConfiguration = {};
 
   static usage = "[options] [FILE]";
@@ -141,10 +143,8 @@ class PlexDvr extends Command {
       flags: { verbose, debug, "sample-config": sampleConfig },
     } = this.parse(PlexDvr);
 
-    this.logger = await setUpLogger(
-      this.config,
-      debug ? "silly" : verbose ? "verbose" : "info"
-    );
+    this.level = debug ? "silly" : verbose ? "verbose" : "info";
+    this.logger = await setUpLogger(this.config, this.level);
 
     if (sampleConfig) {
       this.log(

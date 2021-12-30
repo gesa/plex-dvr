@@ -3,14 +3,9 @@ import { IConfig } from "@oclif/config";
 import { promises } from "fs";
 import { join, dirname } from "path";
 
-const { combine, timestamp, printf, errors, colorize } = format;
+const { combine, timestamp, printf, errors, cli, label } = format;
 const { mkdir } = promises;
-const defaultFormat = [
-  timestamp({ format: "MM/DD HH:mm:ss" }),
-  printf(
-    ({ level, message, timestamp }) => `${timestamp} [${level}] ${message}`
-  ),
-];
+const timestampFormat = "MM/DD HH:mm:ss";
 
 export default function setUpLogger(config: IConfig, level: string) {
   return mkdir(dirname(config.errlog), { recursive: true })
@@ -23,40 +18,50 @@ export default function setUpLogger(config: IConfig, level: string) {
             level,
             stderrLevels: ["error"],
             format: combine(
-              ...defaultFormat,
-              colorize({ all: true }),
+              timestamp({ format: timestampFormat }),
+              label({ label: "PLEXDVR" }),
+              printf(
+                ({ level, message, timestamp, label }) =>
+                  `${timestamp} ${level.toUpperCase()} [${label}] ${message}`
+              ),
+              cli({ all: true }),
               errors({ stack: true })
             ),
           }),
+          new transports.File({
+            filename: config.errlog,
+            format: combine(
+              timestamp({ format: timestampFormat }),
+              printf(
+                ({ level, message, timestamp }) =>
+                  `${timestamp} ${level.toUpperCase()} - ${message}`
+              ),
+              errors({ stack: true })
+            ),
+            level: "error",
+            handleExceptions: true,
+            maxFiles: 10,
+            maxsize: 1000000,
+            tailable: true,
+            zippedArchive: true,
+          }),
+          new transports.File({
+            filename: join(config.cacheDir, "process.log"),
+            format: combine(
+              timestamp({ format: timestampFormat }),
+              printf(
+                ({ level, message, timestamp }) =>
+                  `${timestamp} ${level.toUpperCase()} - ${message}`
+              )
+            ),
+            maxsize: 1000000,
+            maxFiles: 10,
+            tailable: true,
+            zippedArchive: true,
+            level: level === "silly" ? "silly" : "verbose",
+          }),
         ],
       })
-    )
-    .then((logger) =>
-      logger.add(
-        new transports.File({
-          filename: config.errlog,
-          format: combine(...defaultFormat),
-          level: "error",
-          handleExceptions: true,
-          maxFiles: 10,
-          maxsize: 1000000,
-          tailable: true,
-          zippedArchive: true,
-        })
-      )
-    )
-    .then((logger) =>
-      logger.add(
-        new transports.File({
-          filename: join(config.cacheDir, "process.log"),
-          format: combine(...defaultFormat),
-          maxsize: 1000000,
-          maxFiles: 10,
-          tailable: true,
-          zippedArchive: true,
-          level: level === "silly" ? "silly" : "verbose",
-        })
-      )
     )
     .then((logger) => {
       Object.keys(process.env).forEach((envVar) => {

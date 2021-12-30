@@ -1,5 +1,6 @@
 import { spawn } from "child_process";
 import { Logger } from "winston";
+import { basename } from "path";
 
 export function spawnBinary(
   cmd: string,
@@ -9,6 +10,10 @@ export function spawnBinary(
   return new Promise((resolve, reject) => {
     let currentStdOut = "";
     let currentStdErr = "";
+    let lastStdOut = "";
+    let lastStdErr = "";
+    const label = basename(cmd);
+    const binLogger = logger.child({ label });
     const spawnedProcess = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
       shell: true,
@@ -21,24 +26,29 @@ export function spawnBinary(
      * update from the current command
      * */
     const processCheckIn = setInterval(() => {
-      if (currentStdErr.length > 0)
-        logger.verbose(`${cmd} check-in: ${currentStdErr}`);
-      if (currentStdOut.length > 0)
-        logger.verbose(`${cmd} check-in: ${currentStdOut}`);
+      if (currentStdErr.length > 0 && currentStdErr !== lastStdErr)
+        binLogger.verbose(currentStdErr);
+
+      lastStdErr = currentStdErr;
+
+      if (currentStdOut.length > 0 && currentStdOut !== lastStdOut)
+        binLogger.verbose(currentStdOut, { label });
+
+      lastStdOut = currentStdOut;
     }, 60000);
 
     spawnedProcess.stderr.on("data", (data) => {
       currentStdErr = data.toString();
-      logger.silly(currentStdErr);
+      binLogger.silly(currentStdErr, { label });
     });
 
     spawnedProcess.stdout.on("data", (data) => {
       currentStdOut = data;
-      logger.silly(currentStdOut);
+      binLogger.silly(currentStdOut, { label });
     });
 
     spawnedProcess.on("error", (err) => {
-      logger.error(`${cmd} threw an error ${err}`);
+      binLogger.error(err.toString(), { label });
 
       clearInterval(processCheckIn);
 
@@ -48,8 +58,10 @@ export function spawnBinary(
     spawnedProcess.on("close", (code) => {
       clearInterval(processCheckIn);
 
-      if (currentStdErr.length > 0) logger.verbose(currentStdErr);
-      if (currentStdOut.length > 0) logger.verbose(currentStdOut);
+      if (currentStdErr.length > 0 && currentStdErr !== lastStdErr)
+        binLogger.verbose(currentStdErr, { label });
+      if (currentStdOut.length > 0 && currentStdOut !== lastStdOut)
+        binLogger.verbose(currentStdOut, { label });
 
       if (code === 0) {
         resolve(code);
