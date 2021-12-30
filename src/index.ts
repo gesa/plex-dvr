@@ -405,18 +405,18 @@ class PlexDvr extends Command {
           this.logger
         );
       }, this.catch)
-      .catch((code: void | number) => {
+      .catch((error: void | number) => {
         const ccExtractorError = (message: string) =>
           this.error(message, {
-            code: `${code}`,
-            exit: code || 1,
+            code: `${error}`,
+            exit: error || 1,
             ref: "https://github.com/CCExtractor/ccextractor/blob/v0.88/src/lib_ccx/ccx_common_common.h",
             suggestions: [
               "You can find CCEXTRACTOR error codes defined on github",
             ],
           });
 
-        switch (`${code}`) {
+        switch (`${error}`) {
           case "0":
           case "10":
             return Promise.resolve();
@@ -432,7 +432,7 @@ class PlexDvr extends Command {
           case "9":
             return ccExtractorError("CCEXTRACTOR exited with help text");
           default:
-            return ccExtractorError(`CCEXTRACTOR exited with code ${code}`);
+            return ccExtractorError(`CCEXTRACTOR exited with code ${error}`);
         }
       })
       /**
