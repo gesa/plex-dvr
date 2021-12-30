@@ -17,13 +17,15 @@ export function spawnBinary(
     spawnedProcess.stdout.setEncoding("utf8");
 
     /**
-     * When logging verbosely, update the log every five minutes with the latest
+     * When logging verbosely, update the log every minute with the latest
      * update from the current command
      * */
     const processCheckIn = setInterval(() => {
-      logger.verbose(`${cmd} check-in: ${currentStdOut}`);
-      logger.verbose(`${cmd} check-in: ${currentStdErr}`);
-    }, 300000);
+      if (currentStdErr.length > 0)
+        logger.verbose(`${cmd} check-in: ${currentStdErr}`);
+      if (currentStdOut.length > 0)
+        logger.verbose(`${cmd} check-in: ${currentStdOut}`);
+    }, 60000);
 
     spawnedProcess.stderr.on("data", (data) => {
       currentStdErr = data.toString();
@@ -45,6 +47,9 @@ export function spawnBinary(
 
     spawnedProcess.on("close", (code) => {
       clearInterval(processCheckIn);
+
+      if (currentStdErr.length > 0) logger.verbose(currentStdErr);
+      if (currentStdOut.length > 0) logger.verbose(currentStdOut);
 
       if (code === 0) {
         resolve(code);
