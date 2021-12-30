@@ -3,14 +3,12 @@ import { IConfig } from "@oclif/config";
 import { promises } from "fs";
 import { join, dirname } from "path";
 
-const { combine, timestamp, printf, errors, colorize, label } = format;
+const { combine, timestamp, printf, errors, colorize } = format;
 const { mkdir } = promises;
 const defaultFormat = [
   timestamp({ format: "MM/DD HH:mm:ss" }),
-  label({ label: "PLEXDVR" }),
   printf(
-    ({ level, message, label, timestamp }) =>
-      `${timestamp} [${label}] ${level}: ${message}`
+    ({ level, message, timestamp }) => `${timestamp} [${level}] ${message}`
   ),
 ];
 
