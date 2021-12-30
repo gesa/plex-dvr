@@ -1,4 +1,4 @@
-import Help from "@oclif/plugin-help";
+import { Help } from "@oclif/plugin-help";
 import { Command } from "@oclif/config";
 
 export default class extends Help {
