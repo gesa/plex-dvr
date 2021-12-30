@@ -143,9 +143,6 @@ class PlexDvr extends Command {
       flags: { verbose, debug, "sample-config": sampleConfig },
     } = this.parse(PlexDvr);
 
-    this.level = debug ? "silly" : verbose ? "verbose" : "info";
-    this.logger = await setUpLogger(this.config, this.level);
-
     if (sampleConfig) {
       this.log(
         `${this.config.name} will look in ${this.config.configDir} for a config file (config.json) as well as a comskip.ini.`
@@ -154,6 +151,9 @@ class PlexDvr extends Command {
 
       this.exit(0);
     }
+
+    this.level = debug ? "silly" : verbose ? "verbose" : "info";
+    this.logger = await setUpLogger(this.config, this.level);
 
     if (existsSync(configFile)) {
       this.userConfig = JSON.parse(readFileSync(configFile).toString());
@@ -179,9 +179,14 @@ class PlexDvr extends Command {
   }
 
   exit(code?: number): never {
-    if (existsSync(this.lockFile)) {
-      this.info("Exiting process, deleting lockfile.");
-      unlinkSync(this.lockFile);
+    if (
+      !this.argv.includes("--help") &&
+      !this.argv.includes("--sample-config")
+    ) {
+      if (existsSync(this.lockFile)) {
+        this.info("Exiting process, deleting lockfile.");
+        unlinkSync(this.lockFile);
+      }
     }
 
     super.exit(code);
