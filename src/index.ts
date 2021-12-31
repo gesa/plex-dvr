@@ -11,7 +11,7 @@ import { basename, dirname, join } from "path";
 import { tmpdir } from "os";
 import { Command, flags } from "@oclif/command";
 import { ExitError, handle } from "@oclif/errors";
-import { Logger } from "winston";
+import { config, Logger } from "winston";
 import { spawnBinary } from "./util";
 import setUpLogger from "./logger";
 import {
@@ -132,6 +132,9 @@ class PlexDvr extends Command {
     "handbrake-preset-name": flags.string({
       char: "P",
       description: "Name of preset to select from gui or supplied preset file",
+    }),
+    "bypass-comskip": flags.boolean({
+      hidden: true,
     }),
   };
 
@@ -347,13 +350,18 @@ class PlexDvr extends Command {
          * Plex's setting of this var torpedoes ffmpeg that's been compiled w/qsv
          * unset -v LD_LIBRARY_PATH
          * */
+        delete process.env.LD_LIBRARY_PATH;
+
+        if (options["bypass-comskip"]) {
+          return;
+        }
+
         COMSKIP_OPTS.push(
           `--ini="${comskipIniLocation}"`,
           `--output="${workingDir}"`,
           `--output-filename="${fileName}"`,
           `"${workingFile}.ts"`
         );
-        delete process.env.LD_LIBRARY_PATH;
 
         this.info(`Running ComSkip on '${fileName}'`);
         this.verbose(`current command:\ncomskip ${COMSKIP_OPTS.join(" ")}`);
@@ -370,6 +378,10 @@ class PlexDvr extends Command {
        * output by Comcut.
        * */
       .then(() => {
+        if (options["bypass-comskip"]) {
+          return;
+        }
+
         if (existsSync(`${workingFile}.edl`)) {
           COMCUT_OPTS.push(
             `--comskip-ini="${comskipIniLocation}"`,
