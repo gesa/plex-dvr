@@ -378,10 +378,6 @@ class PlexDvr extends Command {
        * output by Comcut.
        * */
       .then(() => {
-        if (options["bypass-comskip"]) {
-          return;
-        }
-
         if (existsSync(`${workingFile}.edl`)) {
           COMCUT_OPTS.push(
             `--comskip-ini="${comskipIniLocation}"`,
@@ -399,8 +395,11 @@ class PlexDvr extends Command {
           );
         }
 
-        this.info("No commercials found");
-        this.verbose("generating faux ffmeta");
+        if (!options["bypass-comskip"]) {
+          this.info("No commercials found");
+        }
+
+        this.verbose("Generating faux ffmeta");
 
         return writeFile(`${workingFile}.ffmeta`, ";FFMETADATA1");
       }, this.catch)
