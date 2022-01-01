@@ -11,7 +11,7 @@ import { basename, dirname, join } from "path";
 import { tmpdir } from "os";
 import { Command, flags } from "@oclif/command";
 import { ExitError, handle } from "@oclif/errors";
-import { config, Logger } from "winston";
+import { Logger } from "winston";
 import { spawnBinary } from "./util";
 import setUpLogger from "./logger";
 import {
