@@ -210,16 +210,12 @@ class PlexDvr extends Command {
       this.error("File not found", { exit: 404 });
     }
 
-    let quietTime = true;
     const lockFile = this.lockFile;
     const deleteTemp = !options["keep-temp"];
     const deleteOriginal = !options["keep-original"];
     const workingDir = mkdtempSync(join(tmpdir(), "plex-"));
     const fileName = basename(originalFile, ".ts");
     const workingFile = join(workingDir, fileName);
-    const [qS, qE] = options["quiet-time"].split("-");
-    const quietStart = parseInt(qS, 10);
-    const quietEnd = parseInt(qE, 10);
     const comskipIniLocation = join(this.config.configDir, "comskip.ini");
 
     this.info(`DVR post-processing script started on "${fileName}"`);
@@ -233,39 +229,51 @@ class PlexDvr extends Command {
      * @return {Promise<void>} resolves with filename
      */
     const checkForQuietTime = (file: string): Promise<string> => {
+      this.verbose("Checking quiet time");
+
       return new Promise((resolve) => {
-        const currentHour = new Date().getHours();
+        const [qS, qE] = options["quiet-time"]?.split("-") ?? ["00", "00"];
 
-        this.verbose("Checking quiet time");
-
-        if (options["ignore-quiet-time"] || quietStart === quietEnd) {
+        if (options["ignore-quiet-time"] || qS === qE) {
           this.info(
             `There is no quiet time set, beginning processing of ${file} immediately.`
           );
 
-          quietTime = false;
-
           return resolve(file);
         }
 
-        const quietTimeLockout = global.setInterval(() => {
-          this.verbose("Beginning quiet time interval");
+        const quietStart = parseInt(qS, 10);
+        const quietEnd = parseInt(qE, 10);
+
+        function itIsQuietTime() {
+          const currentHour = new Date().getHours();
 
           if (quietStart > quietEnd) {
-            quietTime = currentHour >= quietStart || currentHour < quietEnd;
-          } else if (quietStart < quietEnd) {
-            quietTime = currentHour >= quietStart && currentHour < quietEnd;
+            return currentHour >= quietStart || currentHour < quietEnd;
           }
 
-          this.verbose(`It ${quietTime ? "is" : "is not"} quiet time.`);
+          if (quietStart < quietEnd) {
+            return currentHour >= quietStart && currentHour < quietEnd;
+          }
 
-          if (quietTime) {
-            this.silly(`It's quiet time, sleeping '${file}' for 15 min.`);
+          return false;
+        }
+
+        if (!itIsQuietTime()) {
+          this.info(
+            `It's currently outside quiet time, beginning processing of ${file} immediately.`
+          );
+
+          resolve(file);
+        }
+
+        const quietTimeLockout = global.setInterval(() => {
+          if (itIsQuietTime()) {
+            this.verbose(`It’s quiet time, sleeping '${file}' for 15 minutes.`);
           } else {
             this.info(
               `Quiet time is over, let's get on with converting '${file}'.`
             );
-            quietTime = false;
             global.clearInterval(quietTimeLockout);
 
             return resolve(file);
