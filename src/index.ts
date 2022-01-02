@@ -6,7 +6,6 @@ import {
   statSync,
   unlinkSync,
 } from "fs";
-import { inspect } from "util";
 import { basename, dirname, join } from "path";
 import { tmpdir } from "os";
 import { Command, flags } from "@oclif/command";
@@ -21,14 +20,6 @@ import {
   FFMPEG_OPTS,
 } from "./constants";
 
-const { copyFile, writeFile, unlink, rm } = promises;
-const baseConfigOptions: Configuration = {
-  "ignore-quiet-time": false,
-  "keep-original": false,
-  "keep-temp": false,
-  "quiet-time": "03-12",
-};
-
 type UserConfiguration = {
   encoder?: string;
   "encoder-preset"?: string;
@@ -36,14 +27,28 @@ type UserConfiguration = {
   "keep-original"?: boolean;
   "keep-temp"?: boolean;
   "quiet-time"?: string;
+  "handbrake-presets-import"?: string;
+  "handbrake-preset-name"?: string;
 };
 
 type Configuration = {
   "ignore-quiet-time": boolean;
   "keep-original": boolean;
   "keep-temp": boolean;
-  "quiet-time": string;
-  [index: string]: string | boolean;
+  [index: string]: string | boolean | undefined;
+};
+
+const { copyFile, writeFile, unlink, rm } = promises;
+
+const baseConfigOptions: Configuration = {
+  encoder: undefined,
+  "encoder-preset": undefined,
+  "ignore-quiet-time": false,
+  "keep-original": false,
+  "keep-temp": false,
+  "quiet-time": undefined,
+  "handbrake-presets-import": undefined,
+  "handbrake-preset-name": undefined,
 };
 
 class PlexDvr extends Command {
@@ -89,7 +94,7 @@ class PlexDvr extends Command {
     }),
     "quiet-time": flags.string({
       char: "q",
-      description: `Quiet time, in the format of \`NN-NN' where NN is an hour on the 24-hour clock (0 being midnight, 23 being 11pm). Default value \`${baseConfigOptions["quiet-time"]}'`,
+      description: `Quiet time, in the format of \`NN-NN' where NN is an hour on the 24-hour clock (0 being midnight, 23 being 11pm).`,
       exclusive: ["ignore-quiet-time"],
     }),
     "sample-config": flags.boolean({
@@ -142,15 +147,27 @@ class PlexDvr extends Command {
 
   async init() {
     const configFile = join(this.config.configDir, "config.json");
-    const {
-      flags: { verbose, debug, "sample-config": sampleConfig },
-    } = this.parse(PlexDvr);
+    const { flags } = this.parse(PlexDvr);
+    const { verbose, debug } = flags;
 
-    if (sampleConfig) {
+    if (flags["sample-config"]) {
+      const sampleConfig = { ...baseConfigOptions, ...flags } as Configuration;
+
+      delete sampleConfig["sample-config"];
+
       this.log(
         `${this.config.name} will look in ${this.config.configDir} for a config file (config.json) as well as a comskip.ini.`
       );
-      this.log(inspect(baseConfigOptions, false, 2, true));
+      this.log(
+        JSON.stringify(
+          sampleConfig,
+          (k, v) => {
+            if (v === undefined) return "";
+            return v;
+          },
+          2
+        )
+      );
 
       this.exit(0);
     }
@@ -200,15 +217,19 @@ class PlexDvr extends Command {
       args: { file: originalFile },
       flags,
     } = this.parse(PlexDvr);
+
+    if (!existsSync(originalFile)) this.error("File not found", { exit: 404 });
+
     const options: Configuration = Object.assign(
+      {},
       baseConfigOptions,
       this.userConfig,
       flags
     );
 
-    if (!existsSync(originalFile)) {
-      this.error("File not found", { exit: 404 });
-    }
+    Object.entries(options).forEach(([key, value]) => {
+      if (value === "") delete options[key];
+    });
 
     const lockFile = this.lockFile;
     const deleteTemp = !options["keep-temp"];
@@ -232,9 +253,14 @@ class PlexDvr extends Command {
       this.verbose("Checking quiet time");
 
       return new Promise((resolve) => {
-        const [qS, qE] = options["quiet-time"]?.split("-") ?? ["00", "00"];
+        const quietTime = options["quiet-time"]?.toString() ?? "00-00";
+        const [qS, qE] = quietTime.split("-");
 
-        if (options["ignore-quiet-time"] || qS === qE) {
+        if (
+          !/\d{2}-\d{2}/.test(quietTime) ||
+          options["ignore-quiet-time"] ||
+          qS === qE
+        ) {
           this.info(
             `There is no quiet time set, beginning processing of ${file} immediately.`
           );
