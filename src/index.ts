@@ -293,7 +293,7 @@ class PlexDvr extends Command {
             `It's currently outside quiet time, beginning processing of ${file} immediately.`
           );
 
-          resolve(file);
+          return resolve(file);
         }
 
         const quietTimeLockout = global.setInterval(() => {
