@@ -10,7 +10,7 @@ import { basename, dirname, join } from "path";
 import { tmpdir } from "os";
 import { Command, flags } from "@oclif/command";
 import { ExitError, handle } from "@oclif/errors";
-import { Logger } from "winston";
+import { Logger, loggers } from "winston";
 import { spawnBinary } from "./util";
 import setUpLogger from "./logger";
 import {
@@ -173,7 +173,10 @@ class PlexDvr extends Command {
     }
 
     this.level = debug ? "silly" : verbose ? "verbose" : "info";
-    this.logger = await setUpLogger(this.config, this.level);
+
+    setUpLogger(this.config, this.level);
+
+    this.logger = loggers.get("plex-dvr");
 
     if (existsSync(configFile)) {
       this.userConfig = JSON.parse(readFileSync(configFile).toString());
@@ -399,11 +402,7 @@ class PlexDvr extends Command {
 
         this.info(`Running ComSkip on '${fileName}'`);
 
-        return spawnBinary(
-          flags["comskip-location"],
-          COMSKIP_OPTS,
-          this.logger
-        );
+        return spawnBinary(flags["comskip-location"], COMSKIP_OPTS);
       }, this.catch)
       /**
        * Run Comcut if there's an edl file denoting chapter boundaries.
@@ -420,11 +419,7 @@ class PlexDvr extends Command {
 
           this.info(`Commercials detected! Running Comcut on ${fileName}`);
 
-          return spawnBinary(
-            flags["comcut-location"],
-            COMCUT_OPTS,
-            this.logger
-          );
+          return spawnBinary(flags["comcut-location"], COMCUT_OPTS);
         }
 
         if (!options["bypass-comskip"]) {
@@ -446,11 +441,7 @@ class PlexDvr extends Command {
           `"${workingFile}.srt"`
         );
 
-        return spawnBinary(
-          flags["ccextractor-location"],
-          CCEXTRACTOR_ARGS,
-          this.logger
-        );
+        return spawnBinary(flags["ccextractor-location"], CCEXTRACTOR_ARGS);
       }, this.catch)
       .catch((error: void | number) => {
         const ccExtractorError = (message: string) =>
@@ -498,7 +489,7 @@ class PlexDvr extends Command {
 
         this.info("Remuxing ts file to mp4 and adding chapter markers");
 
-        return spawnBinary(flags["ffmpeg-location"], ffmpegOpts, this.logger);
+        return spawnBinary(flags["ffmpeg-location"], ffmpegOpts);
       })
       /**
        * Transcode mp4 to mkv using handbrake
@@ -541,7 +532,7 @@ class PlexDvr extends Command {
 
         this.info(`Transcoding started on '${fileName}'`);
 
-        return spawnBinary(flags["handbrake-location"], hbOptions, this.logger);
+        return spawnBinary(flags["handbrake-location"], hbOptions);
       })
       .catch((code) =>
         this.error("HandBrakeCLI failed", {

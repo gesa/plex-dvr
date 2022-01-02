@@ -1,11 +1,10 @@
 import { spawn } from "child_process";
-import { Logger } from "winston";
+import { loggers } from "winston";
 import { basename } from "path";
 
 export function spawnBinary(
   cmd: string,
-  args: string[],
-  logger: Logger
+  args: string[]
 ): Promise<void | number> {
   return new Promise((resolve, reject) => {
     let currentStdOut = "";
@@ -13,7 +12,7 @@ export function spawnBinary(
     let lastStdOut = "";
     let lastStdErr = "";
     const command = basename(cmd);
-    const binLogger = logger.child({ command });
+    const binLogger = loggers.get("plex-dvr").child({ command });
     const spawnedProcess = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
       shell: true,
