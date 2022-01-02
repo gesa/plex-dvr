@@ -372,7 +372,6 @@ class PlexDvr extends Command {
         );
 
         this.info(`Running ComSkip on '${fileName}'`);
-        this.verbose(`current command:\ncomskip ${COMSKIP_OPTS.join(" ")}`);
 
         return spawnBinary(
           flags["comskip-location"],
@@ -394,7 +393,6 @@ class PlexDvr extends Command {
           );
 
           this.info(`Commercials detected! Running Comcut on ${fileName}`);
-          this.verbose(`current command:\ncomcut ${COMCUT_OPTS.join(" ")}`);
 
           return spawnBinary(
             flags["comcut-location"],
@@ -420,9 +418,6 @@ class PlexDvr extends Command {
           `"${workingFile}.ts"`,
           "-o",
           `"${workingFile}.srt"`
-        );
-        this.verbose(
-          `current command:\nccextractor ${CCEXTRACTOR_ARGS.join(" ")}`
         );
 
         return spawnBinary(
@@ -476,7 +471,6 @@ class PlexDvr extends Command {
         ];
 
         this.info("Remuxing ts file to mp4 and adding chapter markers");
-        this.verbose(`current command:\nffmpeg ${ffmpegOpts.join(" ")}`);
 
         return spawnBinary(flags["ffmpeg-location"], ffmpegOpts, this.logger);
       })
@@ -520,7 +514,6 @@ class PlexDvr extends Command {
         );
 
         this.info(`Transcoding started on '${fileName}'`);
-        this.verbose(`current command:\nHandbrakeCLI ${hbOptions.join(" ")}`);
 
         return spawnBinary(flags["handbrake-location"], hbOptions, this.logger);
       })

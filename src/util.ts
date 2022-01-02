@@ -19,6 +19,8 @@ export function spawnBinary(
       shell: true,
     });
 
+    binLogger.verbose(`${command} ${args.join(" ")}`);
+
     spawnedProcess.stdout.setEncoding("utf8");
 
     /**
