@@ -3,41 +3,37 @@ import { IConfig } from "@oclif/config";
 import { promises } from "fs";
 import { join, dirname } from "path";
 
-const { combine, timestamp, printf, errors, cli, label } = format;
+const { combine, timestamp, printf, errors, colorize } = format;
 const { mkdir } = promises;
 const timestampFormat = "MM/DD HH:mm:ss";
+const defaultFormat = [
+  timestamp({ format: timestampFormat }),
+  printf(
+    ({ level, message, command, timestamp }) =>
+      `${timestamp} [${command}] ${level.toUpperCase()} - ${message}`
+  ),
+];
 
 export default function setUpLogger(config: IConfig, level: string) {
   return mkdir(dirname(config.errlog), { recursive: true })
     .then(() => mkdir(config.cacheDir, { recursive: true }))
     .then(() =>
       createLogger({
+        defaultMeta: { command: "plex-dvr" },
         transports: [
           new transports.Console({
             consoleWarnLevels: ["warn"],
             level,
             stderrLevels: ["error"],
             format: combine(
-              timestamp({ format: timestampFormat }),
-              label({ label: "PLEXDVR" }),
-              printf(
-                ({ level, message, timestamp, label }) =>
-                  `${timestamp} ${level.toUpperCase()} [${label}] ${message}`
-              ),
-              cli({ all: true }),
+              ...defaultFormat,
+              colorize({ all: true }),
               errors({ stack: true })
             ),
           }),
           new transports.File({
             filename: config.errlog,
-            format: combine(
-              timestamp({ format: timestampFormat }),
-              printf(
-                ({ level, message, timestamp }) =>
-                  `${timestamp} ${level.toUpperCase()} - ${message}`
-              ),
-              errors({ stack: true })
-            ),
+            format: combine(...defaultFormat, errors({ stack: true })),
             level: "error",
             handleExceptions: true,
             maxFiles: 10,
@@ -47,13 +43,7 @@ export default function setUpLogger(config: IConfig, level: string) {
           }),
           new transports.File({
             filename: join(config.cacheDir, "process.log"),
-            format: combine(
-              timestamp({ format: timestampFormat }),
-              printf(
-                ({ level, message, timestamp }) =>
-                  `${timestamp} ${level.toUpperCase()} - ${message}`
-              )
-            ),
+            format: combine(...defaultFormat),
             maxsize: 1000000,
             maxFiles: 10,
             tailable: true,

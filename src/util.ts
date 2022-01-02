@@ -12,8 +12,8 @@ export function spawnBinary(
     let currentStdErr = "";
     let lastStdOut = "";
     let lastStdErr = "";
-    const label = basename(cmd);
-    const binLogger = logger.child({ label });
+    const command = basename(cmd);
+    const binLogger = logger.child({ command });
     const spawnedProcess = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
       shell: true,
@@ -32,23 +32,23 @@ export function spawnBinary(
       lastStdErr = currentStdErr;
 
       if (currentStdOut.length > 0 && currentStdOut !== lastStdOut)
-        binLogger.verbose(currentStdOut, { label });
+        binLogger.verbose(currentStdOut);
 
       lastStdOut = currentStdOut;
     }, 60000);
 
     spawnedProcess.stderr.on("data", (data) => {
       currentStdErr = data.toString();
-      binLogger.silly(currentStdErr, { label });
+      binLogger.silly(currentStdErr);
     });
 
     spawnedProcess.stdout.on("data", (data) => {
       currentStdOut = data;
-      binLogger.silly(currentStdOut, { label });
+      binLogger.silly(currentStdOut);
     });
 
     spawnedProcess.on("error", (err) => {
-      binLogger.error(err.toString(), { label });
+      binLogger.error(err.toString());
 
       clearInterval(processCheckIn);
 
@@ -59,9 +59,9 @@ export function spawnBinary(
       clearInterval(processCheckIn);
 
       if (currentStdErr.length > 0 && currentStdErr !== lastStdErr)
-        binLogger.verbose(currentStdErr, { label });
+        binLogger.verbose(currentStdErr);
       if (currentStdOut.length > 0 && currentStdOut !== lastStdOut)
-        binLogger.verbose(currentStdOut, { label });
+        binLogger.verbose(currentStdOut);
 
       if (code === 0) {
         resolve(code);
