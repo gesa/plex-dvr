@@ -68,6 +68,7 @@ class PlexDvr extends Command {
   ];
 
   static flags = {
+    version: flags.version({ char: "V" }),
     encoder: flags.string({
       char: "e",
       description:
