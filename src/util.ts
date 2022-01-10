@@ -59,14 +59,19 @@ export function spawnBinary(
     spawnedProcess.on("close", (code) => {
       clearInterval(processCheckIn);
 
-      if (currentStdErr.length > 0 && currentStdErr !== lastStdErr)
-        binLogger.verbose(currentStdErr);
-      if (currentStdOut.length > 0 && currentStdOut !== lastStdOut)
-        binLogger.verbose(currentStdOut);
+      if (binLogger.level !== "silly") {
+        if (currentStdErr.length > 0 && currentStdErr !== lastStdErr)
+          binLogger.verbose(currentStdErr);
+        if (currentStdOut.length > 0 && currentStdOut !== lastStdOut)
+          binLogger.verbose(currentStdOut);
+      }
 
       if (code === 0) {
         resolve(code);
       } else {
+        // Comskip returns 1 if it didn't find any commercials
+        if (lastStdErr.includes("Commercials were not found")) resolve(0);
+
         reject(code);
       }
     });

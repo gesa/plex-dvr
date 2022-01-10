@@ -353,7 +353,7 @@ class PlexDvr extends Command {
     };
 
     process.on("unhandledRejection", () => {
-      this.exit(0);
+      this.exit(1);
     });
 
     process.on("SIGINT", () => {
@@ -427,7 +427,7 @@ class PlexDvr extends Command {
           this.info("No commercials found");
         }
 
-        this.verbose("Generating faux ffmeta");
+        this.verbose("Generating blank ffmeta");
 
         return writeFile(`${workingFile}.ffmeta`, ";FFMETADATA1");
       }, this.catch)
@@ -589,7 +589,7 @@ class PlexDvr extends Command {
       this.logger.log("error", error);
     }
 
-    return handle(error);
+    return super.catch(error);
   }
 }
 
