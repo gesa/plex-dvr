@@ -523,12 +523,10 @@ class PlexDvr extends Command {
         }
 
         hbOptions.push(
-          "--srt-file",
-          `"${workingFile}.srt"`,
           "-i",
           `"${workingFile}.mp4"`,
           "-o",
-          `"${workingFile}.mkv"`
+          `"${workingFile}-transcoded.mkv"`
         );
 
         this.info(`Transcoding started on '${fileName}'`);
@@ -543,6 +541,25 @@ class PlexDvr extends Command {
           ],
         })
       )
+      /**
+       * Add SRT back to the transcoded file (so Handbrake doesn't convert it to
+       * SSA)
+       * */
+      .then(() => {
+        return spawnBinary(flags["ffmpeg-location"], [
+          "-i",
+          `"${workingFile}-transcoded.mkv"`,
+          "-i",
+          `"${workingFile}.srt"`,
+          "-c",
+          "copy",
+          "-map_metadata",
+          "0",
+          "-map_metadata",
+          "1",
+          `"${workingFile}.mkv"`,
+        ]);
+      })
       /**
        * Copy new mkv back to the original transport stream's directory
        * */
