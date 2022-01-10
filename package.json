@@ -1,7 +1,7 @@
 {
   "name": "plex-dvr",
   "description": "A postprocessing script for the Plex DVR. Removes commercials, adds chapter markers, extracts captions as subtitles, and converts to mkv. Requires comskip, comcut, ccextractor, ffmpeg, and HandbrakeCLI.",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "author": "Aki Rose @gesa <hi@akiro.se>",
   "bin": {
     "plex-dvr": "./bin/run"
