@@ -493,7 +493,8 @@ class PlexDvr extends Command {
         return spawnBinary(flags["ffmpeg-location"], ffmpegOpts);
       })
       /**
-       * Transcode mp4 to mkv using handbrake
+       * Transcode mp4 to mkv using handbrake. Do not include subtitles because
+       * Handbrake cannot help but to convert them to SSA for some reason.
        * */
       .then(() => {
         const hbOptions = [];
@@ -526,7 +527,7 @@ class PlexDvr extends Command {
           "-i",
           `"${workingFile}.mp4"`,
           "-o",
-          `"${workingFile}-transcoded.mkv"`
+          `"${workingFile}.mkv"`
         );
 
         this.info(`Transcoding started on '${fileName}'`);
@@ -542,13 +543,17 @@ class PlexDvr extends Command {
         })
       )
       /**
-       * Add SRT back to the transcoded file (so Handbrake doesn't convert it to
-       * SSA)
+       * Add SRT back to the transcoded mkv and output it to source directory
        * */
       .then(() => {
+        this.info(
+          `Remuxing '${fileName}' with subtitles; outputting back to ${dirname(
+            originalFile
+          )}`
+        );
         return spawnBinary(flags["ffmpeg-location"], [
           "-i",
-          `"${workingFile}-transcoded.mkv"`,
+          `"${workingFile}.mkv"`,
           "-i",
           `"${workingFile}.srt"`,
           "-c",
@@ -557,19 +562,8 @@ class PlexDvr extends Command {
           "0",
           "-map_metadata",
           "1",
-          `"${workingFile}.mkv"`,
+          join(dirname(originalFile), `${fileName}.mkv`),
         ]);
-      })
-      /**
-       * Copy new mkv back to the original transport stream's directory
-       * */
-      .then(() => {
-        this.info(`Copying '${fileName}' back to ${dirname(originalFile)}`);
-
-        return copyFile(
-          `${workingFile}.mkv`,
-          join(dirname(originalFile), `${fileName}.mkv`)
-        );
       }, this.catch)
       /**
        * Delete temporary directory, if applicable
