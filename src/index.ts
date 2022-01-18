@@ -289,7 +289,9 @@ class PlexDvr extends Command {
           return false;
         }
 
-        if (!itIsQuietTime()) {
+        if (itIsQuietTime()) {
+          this.info(`It’s quiet time, sleeping '${file}' until that's over.`);
+        } else {
           this.info(
             `It's currently outside quiet time, beginning processing of ${file} immediately.`
           );
