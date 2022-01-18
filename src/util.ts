@@ -24,18 +24,21 @@ export function spawnBinary(
 
     /**
      * When logging verbosely, update the log every minute with the latest
-     * update from the current command
+     * update from the current command. (don't do this when logging at silly
+     * level, then you just wind up with duplicates.)
      * */
     const processCheckIn = setInterval(() => {
-      if (currentStdErr.length > 0 && currentStdErr !== lastStdErr)
-        binLogger.verbose(currentStdErr);
+      if (binLogger.level === "verbose") {
+        if (currentStdErr.length > 0 && currentStdErr !== lastStdErr)
+          binLogger.verbose(currentStdErr);
 
-      lastStdErr = currentStdErr;
+        lastStdErr = currentStdErr;
 
-      if (currentStdOut.length > 0 && currentStdOut !== lastStdOut)
-        binLogger.verbose(currentStdOut);
+        if (currentStdOut.length > 0 && currentStdOut !== lastStdOut)
+          binLogger.verbose(currentStdOut);
 
-      lastStdOut = currentStdOut;
+        lastStdOut = currentStdOut;
+      }
     }, 60000);
 
     spawnedProcess.stderr.on("data", (data) => {
