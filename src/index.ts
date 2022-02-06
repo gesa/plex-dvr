@@ -564,7 +564,7 @@ class PlexDvr extends Command {
           "0",
           "-map_metadata",
           "1",
-          join(dirname(originalFile), `${fileName}.mkv`),
+          `"${join(dirname(originalFile), `${fileName}.mkv`)}"`,
         ]);
       }, this.catch)
       /**
