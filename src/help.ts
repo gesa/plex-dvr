@@ -1,9 +1,20 @@
-import { Help } from "@oclif/plugin-help";
-import { Command } from "@oclif/config";
+import { Help, Interfaces } from "@oclif/core";
 
 export default class extends Help {
-  showCommandHelp(command: Command) {
-    // eslint-disable-next-line no-console
+  showHelp(argv: string[]): Promise<void> {
+    // args for showHelp ===  argv: string[]
+    if (argv.length === 0) {
+      return this.showCommandHelp(
+        this.config.findCommand(this.config.pjson.oclif.default || "plex-dvr", {
+          must: true,
+        })
+      );
+    }
+
+    return super.showHelp(argv);
+  }
+
+  showCommandHelp(command: Interfaces.Command) {
     console.info(`\u001B[1mPLEX DVR POSTPROCESSING\u001B[0m
 =======================
 This script accepts a transport stream as an argument [FILE] and does

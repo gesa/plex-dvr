@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 import { loggers } from "winston";
-import { basename } from "path";
+import path from "path";
 
 export function spawnBinary(
   cmd: string,
@@ -11,7 +11,7 @@ export function spawnBinary(
     let currentStdErr = "";
     let lastStdOut = "";
     let lastStdErr = "";
-    const command = basename(cmd);
+    const command = path.basename(cmd);
     const binLogger = loggers.get("plex-dvr").child({ command });
     const spawnedProcess = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
@@ -28,18 +28,24 @@ export function spawnBinary(
      * level, then you just wind up with duplicates.)
      * */
     const processCheckIn = setInterval(() => {
-      if (binLogger.level === "verbose") {
-        if (currentStdErr.length > 0 && currentStdErr !== lastStdErr)
-          binLogger.verbose(currentStdErr);
+      if (
+        binLogger.level !== "silly" && // silly already output it
+        currentStdErr.length > 0 &&
+        currentStdErr !== lastStdErr
+      )
+        binLogger.verbose(currentStdErr);
 
-        lastStdErr = currentStdErr;
+      lastStdErr = currentStdErr;
 
-        if (currentStdOut.length > 0 && currentStdOut !== lastStdOut)
-          binLogger.verbose(currentStdOut);
+      if (
+        binLogger.level !== "silly" &&
+        currentStdOut.length > 0 &&
+        currentStdOut !== lastStdOut
+      )
+        binLogger.verbose(currentStdOut);
 
-        lastStdOut = currentStdOut;
-      }
-    }, 60000);
+      lastStdOut = currentStdOut;
+    }, 60_000);
 
     spawnedProcess.stderr.on("data", (data) => {
       currentStdErr = data.toString();
@@ -69,13 +75,23 @@ export function spawnBinary(
           binLogger.verbose(currentStdOut);
       }
 
-      if (code === 0) {
-        resolve(code);
-      } else {
-        // Comskip returns 1 if it didn't find any commercials
-        if (lastStdErr.includes("Commercials were not found")) resolve(0);
+      switch (code) {
+        case 0:
+          return resolve(0);
+        case 1:
+          // Comskip returns 1 if it didn't find any commercials
+          if (
+            cmd === "comskip" &&
+            (currentStdOut.includes("Commercials were not found") ||
+              lastStdOut.includes("Commercials were not found"))
+          ) {
+            return resolve(0);
+          }
 
-        reject(code);
+        // falls through
+
+        default:
+          return reject(code);
       }
     });
   });

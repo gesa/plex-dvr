@@ -1,7 +1,7 @@
 import { format, transports, loggers } from "winston";
-import { IConfig } from "@oclif/config";
+import { Interfaces } from "@oclif/core";
 import { mkdirSync } from "fs";
-import { join, dirname } from "path";
+import path from "path";
 
 const { combine, timestamp, printf, errors, colorize } = format;
 const defaultFormat = [
@@ -15,10 +15,10 @@ const defaultFormat = [
 ];
 
 export default function setUpLogger(
-  { errlog, cacheDir }: IConfig,
+  { errlog, cacheDir }: Interfaces.Config,
   level: string
 ) {
-  mkdirSync(dirname(errlog), { recursive: true });
+  mkdirSync(path.dirname(errlog), { recursive: true });
   mkdirSync(cacheDir, { recursive: true });
 
   loggers.add("plex-dvr", {
@@ -39,14 +39,14 @@ export default function setUpLogger(
         level: "error",
         handleExceptions: true,
         maxFiles: 10,
-        maxsize: 1000000,
+        maxsize: 1_000_000,
         tailable: true,
         zippedArchive: true,
       }),
       new transports.File({
-        filename: join(cacheDir, "process.log"),
+        filename: path.join(cacheDir, "process.log"),
         format: combine(...defaultFormat),
-        maxsize: 1000000,
+        maxsize: 1_000_000,
         maxFiles: 10,
         tailable: true,
         zippedArchive: true,
