@@ -474,8 +474,8 @@ export default class PlexDvr extends Command {
         }
       })
       /**
-       * Use ffmpeg to remux the transport stream into an mp4 with
-       * chapter markers.
+       * Use ffmpeg to remux the transport stream video and audio streams into
+       * mp4 with chapter markers.
        * */
       .then(() => {
         const ffmpegOpts = [
@@ -483,7 +483,14 @@ export default class PlexDvr extends Command {
           `"${workingFile}.ts"`,
           "-i",
           `"${workingFile}.ffmeta"`,
-          ...FFMPEG_OPTS,
+          "-map",
+          "0:0",
+          "-map",
+          "0:1",
+          "-map_metadata",
+          "1",
+          "-c",
+          "copy",
           `"${workingFile}.mp4"`,
         ];
 
